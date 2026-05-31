@@ -258,7 +258,25 @@
                     </li>
                 </ul>
                 <div class="d-flex align-items-center gap-3">
-                    <a href="#" class="btn btn-outline-primary px-4 d-none d-lg-block">Masuk</a>
+                    @auth
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary dropdown-toggle px-4 d-none d-lg-inline-block" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Halo, {{ explode(' ', Auth::user()->nama_lengkap ?? 'Pengguna')[0] }}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm mt-2" style="border-radius: 12px;">
+                                <li><a class="dropdown-item py-2" href="{{ url('/admin') }}"><i class="fa-solid fa-gauge me-2"></i>Dashboard Admin</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form action="{{ route('logout') }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item py-2 text-danger"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Keluar</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    @else
+                        <a href="{{ route('login') }}" class="btn btn-outline-primary px-4 d-none d-lg-block">Masuk</a>
+                    @endauth
                     <a href="#rooms" class="btn btn-primary px-4">Pesan Sekarang</a>
                 </div>
             </div>

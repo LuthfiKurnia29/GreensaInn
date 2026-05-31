@@ -268,6 +268,11 @@
                 </a>
             </li>
             <li class="sidebar-item">
+                <a href="{{ route('admin.fasilitas.index') }}" class="sidebar-link {{ Request::is('admin/fasilitas*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-couch"></i> Masterdata Fasilitas
+                </a>
+            </li>
+            <li class="sidebar-item">
                 <a href="{{ url('/admin/reviews') }}" class="sidebar-link {{ Request::is('admin/reviews') ? 'active' : '' }}">
                     <i class="fa-solid fa-file-shield"></i> Peninjauan Booking
                 </a>
