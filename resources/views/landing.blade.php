@@ -174,7 +174,7 @@
                     Temukan dan pesan ruang rapat profesional dengan fasilitas tercanggih secara instan. Dirancang untuk meningkatkan produktivitas, kenyamanan, dan kesuksesan tim Anda di setiap sesi pertemuan.
                 </p>
                 <div class="d-flex flex-column flex-sm-row justify-content-center justify-content-lg-start gap-3">
-                    <a href="#rooms" class="btn btn-accent btn-lg px-4"><i class="fa-regular fa-calendar-check me-2"></i>Pesan Ruangan</a>
+                    <a href="{{ route('booking.index') }}" class="btn btn-accent btn-lg px-4"><i class="fa-regular fa-calendar-check me-2"></i>Pesan Ruangan</a>
                     <a href="#facilities" class="btn btn-outline-light btn-lg px-4"><i class="fa-solid fa-play me-2"></i>Lihat Fasilitas</a>
                 </div>
             </div>

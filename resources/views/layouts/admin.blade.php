@@ -284,9 +284,13 @@
             </li>
         </ul>
         <div class="sidebar-footer">
-            <a href="#" class="sidebar-link text-danger">
-                <i class="fa-solid fa-right-from-bracket"></i> Keluar
-            </a>
+            <form method="POST" action="{{ route('logout') }}" id="logoutForm">
+                @csrf
+                <button type="submit" class="sidebar-link text-danger w-100 border-0 bg-transparent text-start"
+                    onclick="return confirm('Yakin ingin keluar dari sesi admin?')">
+                    <i class="fa-solid fa-right-from-bracket"></i> Keluar
+                </button>
+            </form>
         </div>
     </aside>
 

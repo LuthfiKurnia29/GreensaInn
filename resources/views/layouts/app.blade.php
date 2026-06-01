@@ -277,7 +277,7 @@
                     @else
                         <a href="{{ route('login') }}" class="btn btn-outline-primary px-4 d-none d-lg-block">Masuk</a>
                     @endauth
-                    <a href="#rooms" class="btn btn-primary px-4">Pesan Sekarang</a>
+                    <a href="{{ route('booking.index') }}" class="btn btn-primary px-4">Pesan Sekarang</a>
                 </div>
             </div>
         </div>

@@ -30,15 +30,15 @@
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small fw-bold d-block mb-1">TOTAL RUANGAN</span>
-                    <h3 class="mb-0 fw-bold">{{ $stats['total_rooms'] }} Ruang</h3>
+                    <h3 class="mb-0 fw-bold">{{ $ruanganCount }} Ruang</h3>
                 </div>
                 <div class="stat-icon bg-icon-rooms">
                     <i class="fa-solid fa-door-open"></i>
                 </div>
             </div>
-            <div class="mt-3 small text-muted">
+            <!-- <div class="mt-3 small text-muted">
                 <span class="text-success fw-bold"><i class="fa-solid fa-arrow-up me-1"></i>+1 baru</span> bulan ini
-            </div>
+            </div> -->
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
