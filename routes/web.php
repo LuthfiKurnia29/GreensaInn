@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FasilitasController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\DashboardController;
 
 // Data Dummy Ruang Rapat
 function getMockRooms() {
@@ -184,61 +186,7 @@ Route::get('/room/{id}', function ($id) {
     return view('detail', compact('room'));
 });
 
-Route::get('/admin', function () {
-    $rooms = getMockRooms();
-    $bookings = [
-        [
-            'id' => 'BK-9021',
-            'user' => 'Clara Amanda',
-            'room' => 'Emerald Executive Boardroom',
-            'date' => 'Selasa, 19 Mei 2026',
-            'time' => '08:00 - 10:00 (2 jam)',
-            'purpose' => 'Rapat Koordinasi Evaluasi Bulanan',
-            'price' => 330000,
-            'status' => 'Disetujui'
-        ],
-        [
-            'id' => 'BK-9022',
-            'user' => 'Luthfi Kurnia',
-            'room' => 'Creative Hub & Jam Space',
-            'date' => 'Rabu, 20 Mei 2026',
-            'time' => '14:00 - 16:00 (2 jam)',
-            'purpose' => 'Sesi Brainstorming Produk Kreatif',
-            'price' => 209000,
-            'status' => 'Menunggu Konfirmasi'
-        ],
-        [
-            'id' => 'BK-9023',
-            'user' => 'Dewi Kartika',
-            'room' => 'Synergy Seminar Hall',
-            'date' => 'Kamis, 21 Mei 2026',
-            'time' => '08:00 - 12:00 (4 jam)',
-            'purpose' => 'Pelatihan Staf Operasional Baru',
-            'price' => 1232000,
-            'status' => 'Menunggu Konfirmasi'
-        ],
-        [
-            'id' => 'BK-9024',
-            'user' => 'Ahmad Fauzi',
-            'room' => 'Huddle Pod Room 4A',
-            'date' => 'Jumat, 22 Mei 2026',
-            'time' => '16:00 - 17:00 (1 jam)',
-            'purpose' => 'Wawancara Rekrutmen Tim Dev',
-            'price' => 55000,
-            'status' => 'Dibatalkan'
-        ],
-    ];
-
-    // Stats
-    $stats = [
-        'total_rooms' => count($rooms),
-        'total_bookings' => 38,
-        'rented_hours' => 124,
-        'revenue' => 4580000,
-    ];
-
-    return view('admin.dashboard', compact('bookings', 'stats'));
-});
+Route::get('/admin', [DashboardController::class, 'index']);
 
 Route::get('/admin/rooms', function () {
     $rooms = getMockRooms();
@@ -317,3 +265,13 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// Booking Route - Hanya untuk pengguna yang sudah login
+Route::middleware('auth')->group(function () {
+    Route::get('/booking', function () {
+        $rooms = getMockRooms();
+        return view('booking', compact('rooms'));
+    })->name('booking.index');
+    
+    Route::post('/booking/{ruangan_id}', [BookingController::class, 'store'])->name('booking.store');
+});

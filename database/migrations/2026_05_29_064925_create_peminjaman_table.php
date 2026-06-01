@@ -18,6 +18,8 @@ return new class extends Migration
             $table->date('tanggal_mulai');
             $table->time('waktu_mulai');
             $table->time('waktu_selesai');
+            $table->integer('jumlah_peserta');
+            $table->text('tujuan_rapat');
             $table->enum('status', ['pending', 'approved', 'rejected', 'completed']);
             $table->timestamps();
         });

@@ -316,55 +316,91 @@
                         </div>
                     </div>
 
-                    <!-- Interactive Form Layout -->
-                    <form id="bookingForm" onsubmit="submitBooking(event)">
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted"><i class="fa-regular fa-calendar me-2"></i>PILIH TANGGAL</label>
-                            <input type="date" class="form-control p-3 border-light-subtle rounded-3" id="bookingDate" value="{{ date('Y-m-d') }}" required>
-                        </div>
+                    @auth
+                        {{-- Hanya tampil untuk user yang sudah login --}}
 
-                        <!-- Displays selected slots read-only -->
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted"><i class="fa-regular fa-clock me-2"></i>JAM DIPILIH</label>
-                            <input type="text" class="form-control p-3 border-light-subtle rounded-3 bg-light" id="selectedSlotsDisplay" placeholder="Pilih jam di tabel kiri..." readonly required>
-                            <input type="hidden" id="selectedHoursCount" value="0">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted"><i class="fa-solid fa-users me-2"></i>ESTIMASI PESERTA</label>
-                            <div class="input-group">
-                                <input type="number" class="form-control p-3 border-light-subtle rounded-start-3" id="participantCount" value="5" min="1" max="{{ $room['capacity'] }}" required>
-                                <span class="input-group-text bg-light border-light-subtle rounded-end-3">Orang</span>
+                        @if($errors->any())
+                            <div class="alert alert-danger small mb-3" style="border-radius:12px;background:#fef2f2;border:none;color:#b91c1c;">
+                                <strong><i class="fa-solid fa-triangle-exclamation me-1"></i>Mohon periksa kembali:</strong>
+                                <ul class="mb-0 mt-1 ps-3">
+                                    @foreach($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
                             </div>
-                        </div>
+                        @endif
 
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-muted"><i class="fa-solid fa-list-check me-2"></i>AGENDA RAPAT</label>
-                            <textarea class="form-control border-light-subtle rounded-3" id="meetingPurpose" rows="3" placeholder="Contoh: Rapat Koordinasi Kuartal 1" required></textarea>
-                        </div>
+                        <form id="bookingForm" method="POST" action="{{ route('booking.store', $room['id']) }}">
+                            @csrf
+                            <input type="hidden" name="booking_room_name" value="{{ $room['name'] }}">
+                            <input type="hidden" name="waktu_mulai" id="hiddenWaktuMulai" value="">
+                            <input type="hidden" name="waktu_selesai" id="hiddenWaktuSelesai" value="">
 
-                        <!-- Price Breakdown calculations -->
-                        <div class="price-total-box mb-4" id="priceCalculatorBox" style="display: none;">
-                            <h6 class="fw-bold mb-3">Rincian Estimasi Biaya</h6>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="small text-muted">Sewa Ruangan (<span id="calcHoursText">0 jam</span>)</span>
-                                <span class="small fw-semibold" id="calcRoomPrice">Rp 0</span>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted"><i class="fa-regular fa-calendar me-2"></i>TANGGAL PEMINJAMAN</label>
+                                <input type="date" class="form-control p-3 border-light-subtle rounded-3" id="bookingDate" name="tanggal_mulai" value="{{ old('tanggal_mulai', date('Y-m-d')) }}" min="{{ date('Y-m-d') }}" required>
                             </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="small text-muted">Pajak & Layanan (10%)</span>
-                                <span class="small fw-semibold" id="calcServiceTax">Rp 0</span>
-                            </div>
-                            <hr class="my-2 border-secondary opacity-25">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold text-dark">Total Biaya</span>
-                                <span class="fs-5 fw-extrabold text-primary-custom" id="calcTotalPrice">Rp 0</span>
-                            </div>
-                        </div>
 
-                        <button type="submit" class="btn btn-accent btn-lg w-100 py-3 mt-2" id="submitBookingBtn" disabled>
-                            <i class="fa-regular fa-calendar-check me-2"></i>Pesan Sekarang
-                        </button>
-                    </form>
+                            {{-- Displays selected slots read-only --}}
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted"><i class="fa-regular fa-clock me-2"></i>JAM DIPILIH</label>
+                                <input type="text" class="form-control p-3 border-light-subtle rounded-3 bg-light" id="selectedSlotsDisplay" placeholder="Pilih jam di tabel kiri..." readonly>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted"><i class="fa-solid fa-users me-2"></i>JUMLAH PESERTA</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control p-3 border-light-subtle rounded-start-3" id="participantCount" name="jumlah_peserta" value="{{ old('jumlah_peserta', 5) }}" min="1" max="{{ $room['capacity'] }}" required>
+                                    <span class="input-group-text bg-light border-light-subtle rounded-end-3">Orang</span>
+                                </div>
+                                <div class="text-muted" style="font-size:0.8rem;">Maks. {{ $room['capacity'] }} orang</div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-muted"><i class="fa-solid fa-list-check me-2"></i>TUJUAN RAPAT</label>
+                                <textarea class="form-control border-light-subtle rounded-3" id="meetingPurpose" name="tujuan_rapat" rows="3" placeholder="Contoh: Rapat Koordinasi Kuartal 1" required maxlength="500">{{ old('tujuan_rapat') }}</textarea>
+                            </div>
+
+                            {{-- Price Breakdown --}}
+                            <div class="price-total-box mb-4" id="priceCalculatorBox" style="display: none;">
+                                <h6 class="fw-bold mb-3">Rincian Estimasi Biaya</h6>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="small text-muted">Sewa Ruangan (<span id="calcHoursText">0 jam</span>)</span>
+                                    <span class="small fw-semibold" id="calcRoomPrice">Rp 0</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="small text-muted">Pajak &amp; Layanan (10%)</span>
+                                    <span class="small fw-semibold" id="calcServiceTax">Rp 0</span>
+                                </div>
+                                <hr class="my-2 border-secondary opacity-25">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-dark">Total Biaya</span>
+                                    <span class="fs-5 fw-extrabold text-primary-custom" id="calcTotalPrice">Rp 0</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-accent btn-lg w-100 py-3 mt-2" id="submitBookingBtn" disabled>
+                                <i class="fa-regular fa-calendar-check me-2"></i>Ajukan Pemesanan
+                            </button>
+                        </form>
+
+                    @else
+                        {{-- Guest: tampilkan prompt login --}}
+                        <div class="text-center py-3">
+                            <div style="width:70px;height:70px;background:var(--primary-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                                <i class="fa-solid fa-lock text-primary-custom fs-3"></i>
+                            </div>
+                            <h5 class="fw-bold text-dark mb-2">Login untuk Memesan</h5>
+                            <p class="text-muted small mb-4">Anda perlu masuk ke akun Anda terlebih dahulu untuk dapat melakukan pemesanan ruangan ini.</p>
+                            <a href="{{ route('login') }}" class="btn btn-primary w-100 py-3 mb-2">
+                                <i class="fa-solid fa-right-to-bracket me-2"></i>Masuk Sekarang
+                            </a>
+                            <a href="{{ route('register') }}" class="btn btn-outline-primary w-100 py-3">
+                                <i class="fa-solid fa-user-plus me-2"></i>Daftar Akun Baru
+                            </a>
+                        </div>
+                    @endauth
+
                 </div>
             </div>
         </div>
@@ -379,10 +415,9 @@
                 <div class="success-checkmark-box">
                     <i class="fa-solid fa-circle-check"></i>
                 </div>
-                <h3 class="fw-bold text-dark mb-2">Booking Berhasil Dikirim!</h3>
-                <p class="text-muted small mb-4">Permintaan peminjaman ruang rapat Anda telah kami catat dalam antrean sistem.</p>
-                
-                <!-- Ticket details summary card -->
+                <h3 class="fw-bold text-dark mb-2">Pemesanan Berhasil Dikirim!</h3>
+                <p class="text-muted small mb-4">Permintaan peminjaman ruang rapat Anda telah kami catat. Admin akan segera melakukan verifikasi.</p>
+
                 <div class="premium-card bg-light p-4 text-start mb-4 border-0">
                     <div class="row g-2 small mb-1">
                         <div class="col-5 text-muted">Ruangan:</div>
@@ -390,26 +425,28 @@
                     </div>
                     <div class="row g-2 small mb-1">
                         <div class="col-5 text-muted">Tanggal:</div>
-                        <div class="col-7 fw-bold text-dark text-end" id="modalDateVal">-</div>
+                        <div class="col-7 fw-bold text-dark text-end" id="modalDateVal">{{ session('booking_date') ? date('d M Y', strtotime(session('booking_date'))) : '-' }}</div>
                     </div>
                     <div class="row g-2 small mb-1">
-                        <div class="col-5 text-muted">Jam Booking:</div>
-                        <div class="col-7 fw-bold text-dark text-end" id="modalHoursVal">-</div>
+                        <div class="col-5 text-muted">Jam:</div>
+                        <div class="col-7 fw-bold text-dark text-end" id="modalHoursVal">{{ session('booking_time', '-') }}</div>
                     </div>
                     <div class="row g-2 small mb-1">
                         <div class="col-5 text-muted">Tujuan Rapat:</div>
-                        <div class="col-7 fw-semibold text-dark text-end text-truncate" id="modalPurposeVal">-</div>
+                        <div class="col-7 fw-semibold text-dark text-end text-truncate" id="modalPurposeVal">{{ session('booking_purpose', '-') }}</div>
                     </div>
                     <hr class="my-2 border-secondary opacity-10">
                     <div class="row g-2">
-                        <div class="col-5 fw-bold text-dark">Total Bayar:</div>
-                        <div class="col-7 fw-extrabold text-primary-custom text-end" id="modalPriceVal">-</div>
+                        <div class="col-6 fw-bold text-dark">Status:</div>
+                        <div class="col-6 fw-extrabold text-end">
+                            <span class="badge bg-warning text-dark px-3 py-2">Menunggu Konfirmasi</span>
+                        </div>
                     </div>
                 </div>
 
                 <div class="d-flex flex-column gap-2">
-                    <button class="btn btn-primary btn-lg py-3" onclick="downloadReceipt()"><i class="fa-solid fa-file-pdf me-2"></i>Unduh Bukti Reservasi (PDF)</button>
-                    <a href="{{ url('/') }}" class="btn btn-outline-secondary py-3">Kembali ke Beranda</a>
+                    <a href="{{ url('/') }}" class="btn btn-primary btn-lg py-3"><i class="fa-solid fa-house me-2"></i>Kembali ke Beranda</a>
+                    <button class="btn btn-outline-secondary py-3" data-bs-dismiss="modal">Lihat Detail Ruangan</button>
                 </div>
             </div>
         </div>
@@ -420,7 +457,6 @@
 
 @section('scripts')
 <script>
-    // Config values
     const hourlyPrice = {{ $room['price'] }};
     let selectedSlots = [];
 
@@ -436,7 +472,7 @@
     // Toggle selected time slot
     function toggleSlot(el) {
         const timeVal = el.getAttribute('data-time');
-        
+
         if (el.classList.contains('selected')) {
             el.classList.remove('selected');
             selectedSlots = selectedSlots.filter(t => t !== timeVal);
@@ -445,10 +481,7 @@
             selectedSlots.push(timeVal);
         }
 
-        // Sort slots sequentially
         selectedSlots.sort();
-
-        // Update displays
         updateBookingSummary();
     }
 
@@ -456,72 +489,63 @@
     function updateBookingSummary() {
         const slotsCount = selectedSlots.length;
         const displayField = document.getElementById('selectedSlotsDisplay');
-        const countField = document.getElementById('selectedHoursCount');
         const submitBtn = document.getElementById('submitBookingBtn');
         const calcBox = document.getElementById('priceCalculatorBox');
-        
+
+        // Hidden inputs for real form submission (waktu_mulai & waktu_selesai)
+        const hiddenMulai   = document.getElementById('hiddenWaktuMulai');
+        const hiddenSelesai = document.getElementById('hiddenWaktuSelesai');
+
         if (slotsCount === 0) {
-            displayField.value = '';
-            countField.value = '0';
-            submitBtn.disabled = true;
-            calcBox.style.display = 'none';
+            if (displayField) displayField.value = '';
+            if (submitBtn) submitBtn.disabled = true;
+            if (calcBox) calcBox.style.display = 'none';
+            if (hiddenMulai)   hiddenMulai.value   = '';
+            if (hiddenSelesai) hiddenSelesai.value  = '';
             return;
         }
 
-        // Display string like "08:00, 09:00 (2 jam)"
-        displayField.value = selectedSlots.join(', ') + ` (${slotsCount} jam)`;
-        countField.value = slotsCount;
-        submitBtn.disabled = false;
-        calcBox.style.display = 'block';
+        // Display string: "08:00, 09:00 (2 jam)"
+        if (displayField) displayField.value = selectedSlots.join(', ') + ` (${slotsCount} jam)`;
+        if (submitBtn) submitBtn.disabled = false;
+        if (calcBox) calcBox.style.display = 'block';
 
-        // Calculation logic
-        const rawPrice = hourlyPrice * slotsCount;
+        // Set hidden time fields: mulai = first slot, selesai = last slot + 1 hour
+        if (hiddenMulai)   hiddenMulai.value   = selectedSlots[0] + ':00';
+        if (hiddenSelesai) {
+            const lastSlot = selectedSlots[selectedSlots.length - 1];
+            const [h, m] = lastSlot.split(':').map(Number);
+            const selesaiH = String(h + 1).padStart(2, '0');
+            hiddenSelesai.value = `${selesaiH}:${String(m).padStart(2, '0')}:00`;
+        }
+
+        // Price calculation
+        const rawPrice   = hourlyPrice * slotsCount;
         const serviceTax = Math.round(rawPrice * 0.1);
         const totalPrice = rawPrice + serviceTax;
 
-        // Populate calculator panel
-        document.getElementById('calcHoursText').innerText = `${slotsCount} jam`;
-        document.getElementById('calcRoomPrice').innerText = formatRupiah(rawPrice);
-        document.getElementById('calcServiceTax').innerText = formatRupiah(serviceTax);
-        document.getElementById('calcTotalPrice').innerText = formatRupiah(totalPrice);
+        const calcHours = document.getElementById('calcHoursText');
+        const calcRoom  = document.getElementById('calcRoomPrice');
+        const calcTax   = document.getElementById('calcServiceTax');
+        const calcTotal = document.getElementById('calcTotalPrice');
+
+        if (calcHours) calcHours.innerText = `${slotsCount} jam`;
+        if (calcRoom)  calcRoom.innerText  = formatRupiah(rawPrice);
+        if (calcTax)   calcTax.innerText   = formatRupiah(serviceTax);
+        if (calcTotal) calcTotal.innerText  = formatRupiah(totalPrice);
     }
 
-    // Utility: Format number to Indonesian Rupiah currency
     function formatRupiah(num) {
-        return 'Rp ' + num.toString().replace(/\B(?=(\d{3})+(?!\n))/g, ".");
+        return 'Rp ' + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
 
-    // Submit booking action mockup
-    function submitBooking(event) {
-        event.preventDefault();
-        
-        const dateInput = document.getElementById('bookingDate').value;
-        const slotsText = selectedSlots.join(', ');
-        const meetingPurpose = document.getElementById('meetingPurpose').value;
-        
-        const slotsCount = selectedSlots.length;
-        const rawPrice = hourlyPrice * slotsCount;
-        const serviceTax = Math.round(rawPrice * 0.1);
-        const totalPrice = rawPrice + serviceTax;
-
-        // Set values inside modal
-        // Format Date to indonesian readable format
-        const dateObj = new Date(dateInput);
-        const indonesianDate = dateObj.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-        document.getElementById('modalDateVal').innerText = indonesianDate;
-        document.getElementById('modalHoursVal').innerText = slotsText + ` (${slotsCount} jam)`;
-        document.getElementById('modalPurposeVal').innerText = meetingPurpose;
-        document.getElementById('modalPriceVal').innerText = formatRupiah(totalPrice);
-
-        // Open Bootstrap Modal
-        const successModal = new bootstrap.Modal(document.getElementById('successBookingModal'));
-        successModal.show();
-    }
-
-    // Mock receipt download
-    function downloadReceipt() {
-        alert("E-Receipt PDF berhasil diunduh! (Ini merupakan fitur mockup cetak tanda terima)");
-    }
+    // Auto-open success modal if session has booking_success flag
+    @if(session('booking_success'))
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = new bootstrap.Modal(document.getElementById('successBookingModal'));
+        modal.show();
+    });
+    @endif
 </script>
 @endsection
+
