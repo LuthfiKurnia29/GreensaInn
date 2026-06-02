@@ -73,23 +73,23 @@
                 </thead>
                 <tbody>
                     @foreach($reviews as $review)
-                    <tr id="review-row-{{ $review['id'] }}">
-                        <td class="fw-bold text-dark">{{ $review['id'] }}</td>
+                    <tr id="review-row-{{ $review->id }}">
+                        <td class="fw-bold text-dark">REV-{{ str_pad($review->id, 3, '0', STR_PAD_LEFT) }}</td>
                         <td>
-                            <div class="fw-bold text-dark">{{ $review['booker'] }}</div>
-                            <span class="text-muted small" style="font-size: 0.8rem;"><i class="fa-solid fa-id-card-clip me-1"></i>{{ $review['role'] }}</span>
+                            <div class="fw-bold text-dark">{{ $review->user->nama_lengkap ?? 'Unknown' }}</div>
+                            <span class="text-muted small" style="font-size: 0.8rem;"><i class="fa-solid fa-id-card-clip me-1"></i>{{ $review->user->role ?? '-' }}</span>
                         </td>
                         <td>
-                            <div class="fw-semibold text-dark">{{ $review['room'] }}</div>
+                            <div class="fw-semibold text-dark">{{ $review->ruangan->nama_ruangan ?? 'Unknown' }}</div>
                             <span class="text-muted small d-block" style="font-size: 0.78rem;">
-                                <i class="fa-regular fa-calendar me-1"></i>{{ $review['date'] }}
+                                <i class="fa-regular fa-calendar me-1"></i>{{ \Carbon\Carbon::parse($review->tanggal_mulai)->translatedFormat('l, d M Y') }}
                             </span>
                             <span class="text-muted small d-block" style="font-size: 0.78rem;">
-                                <i class="fa-regular fa-clock me-1"></i>{{ $review['time'] }}
+                                <i class="fa-regular fa-clock me-1"></i>{{ \Carbon\Carbon::parse($review->waktu_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($review->waktu_selesai)->format('H:i') }}
                             </span>
                         </td>
                         <td>
-                            @if($review['type'] === 'Internal UINSA')
+                            @if(($review->user->instansi ?? 'umum') === 'internal')
                                 <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5">
                                     <i class="fa-solid fa-graduation-cap me-1"></i>Internal UINSA
                                 </span>
@@ -101,49 +101,29 @@
                         </td>
                         <td>
                             <div class="finance-badge-box">
-                                @if($review['type'] === 'Internal UINSA')
+                                @if(($review->user->instansi ?? 'umum') === 'internal')
                                     <div class="text-success fw-bold"><i class="fa-solid fa-tags me-1"></i>Bebas Biaya (Rp 0)</div>
                                     <div class="text-muted small mt-0.5">Wajib DP: Rp 0</div>
                                 @else
-                                    <div class="text-dark fw-bold">Total: Rp {{ number_format($review['price'], 0, ',', '.') }}</div>
-                                    <div class="text-danger small fw-semibold mt-0.5"><i class="fa-solid fa-circle-exclamation me-1"></i>Min. DP: Rp {{ number_format($review['price'] / 2, 0, ',', '.') }}</div>
+                                    <div class="text-dark fw-bold">Total: Rp 0 (Disimulasikan)</div>
+                                    <div class="text-danger small fw-semibold mt-0.5"><i class="fa-solid fa-circle-exclamation me-1"></i>Min. DP: Rp 0</div>
                                 @endif
                             </div>
                         </td>
                         <td>
-                            @if($review['status'] === 'Menunggu Review')
-                                <span class="badge-status warning" id="badge-{{ $review['id'] }}">Menunggu Review</span>
-                            @elseif($review['status'] === 'Menunggu Pembayaran DP')
-                                <span class="badge-status warning" id="badge-{{ $review['id'] }}">Menunggu Pembayaran DP</span>
-                            @elseif($review['status'] === 'Menunggu Verifikasi DP')
-                                <span class="badge-status warning bg-primary-subtle text-primary border border-primary-subtle" id="badge-{{ $review['id'] }}">Menunggu Verifikasi DP</span>
+                            @if($review->status === 'approved')
+                                <span class="badge-status success" id="badge-{{ $review->id }}">Disetujui</span>
+                            @elseif($review->status === 'rejected')
+                                <span class="badge-status danger" id="badge-{{ $review->id }}">Ditolak</span>
+                            @elseif($review->status === 'completed')
+                                <span class="badge-status bg-info text-white" id="badge-{{ $review->id }}">Selesai</span>
                             @else
-                                <span class="badge-status success" id="badge-{{ $review['id'] }}">Disetujui</span>
+                                <span class="badge-status warning" id="badge-{{ $review->id }}">Menunggu Review</span>
                             @endif
                         </td>
                         <td>
-                            <div class="d-flex justify-content-center gap-2" id="action-box-{{ $review['id'] }}">
-                                @if($review['type'] === 'Internal UINSA')
-                                    <button class="btn btn-success btn-sm px-2.5 py-1.5" onclick="approveInternal('{{ $review['id'] }}')">
-                                        <i class="fa-solid fa-check-double me-1"></i> Setujui (Gratis)
-                                    </button>
-                                    <button class="btn btn-outline-danger btn-sm px-2.5 py-1.5" onclick="rejectBooking('{{ $review['id'] }}')">
-                                        <i class="fa-solid fa-ban"></i>
-                                    </button>
-                                @else
-                                    @if($review['status'] === 'Menunggu Pembayaran DP')
-                                        <button class="btn btn-warning btn-sm px-2.5 py-1.5 text-white" onclick="sendInvoice('{{ $review['id'] }}')">
-                                            <i class="fa-solid fa-paper-plane me-1"></i> Kirim Tagihan DP
-                                        </button>
-                                    @elseif($review['status'] === 'Menunggu Verifikasi DP')
-                                        <button class="btn btn-primary btn-sm px-2.5 py-1.5" onclick="openVerificationModal({{ json_encode($review) }})">
-                                            <i class="fa-solid fa-file-invoice-dollar me-1"></i> Verifikasi DP
-                                        </button>
-                                    @endif
-                                    <button class="btn btn-outline-danger btn-sm px-2.5 py-1.5" onclick="rejectBooking('{{ $review['id'] }}')">
-                                        <i class="fa-solid fa-ban"></i>
-                                    </button>
-                                @endif
+                            <div class="d-flex justify-content-center gap-2" id="action-box-{{ $review->id }}">
+                                <span class="text-muted small"><i class="fa-solid fa-circle-info me-1"></i>Telah Diproses</span>
                             </div>
                         </td>
                     </tr>

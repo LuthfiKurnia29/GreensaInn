@@ -36,8 +36,8 @@
                         <th>Tipe</th>
                         <th>Kapasitas</th>
                         <th>Harga Sewa</th>
-                        <th>Dimensi (Luas)</th>
-                        <th>Lantai</th>
+                        <th>Status</th>
+                        <th>Jadwal Terdekat</th>
                         <th class="text-center" style="width: 150px;">Aksi</th>
                     </tr>
                 </thead>
@@ -54,8 +54,20 @@
                         <td><span class="badge bg-light text-primary border px-2.5 py-1.5">{{ $room['type'] }}</span></td>
                         <td class="fw-semibold text-dark">{{ $room['capacity'] }} Pax</td>
                         <td class="fw-bold text-success">Rp {{ number_format($room['price'], 0, ',', '.') }}<span class="fw-normal text-muted fs-7">/jam</span></td>
-                        <td>{{ $room['size'] }}</td>
-                        <td>{{ $room['floor'] }}</td>
+                        <td>
+                            @if(strtolower($room['status_tersedia']) === 'tersedia')
+                                <span class="badge bg-success">Tersedia</span>
+                            @else
+                                <span class="badge bg-danger">Terpakai</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($room['next_schedule'] !== '-')
+                                <div class="small fw-semibold text-primary"><i class="fa-regular fa-calendar-check me-1"></i> {{ $room['next_schedule'] }}</div>
+                            @else
+                                <span class="text-muted small">Belum ada jadwal</span>
+                            @endif
+                        </td>
                         <td>
                             <div class="d-flex justify-content-center gap-2">
                                 <button class="btn btn-sm btn-outline-primary" 
@@ -266,9 +278,9 @@
             </td>
             <td><span class="badge bg-light text-primary border px-2.5 py-1.5">${type}</span></td>
             <td class="fw-semibold text-dark">${capacity} Pax</td>
-            <td class="fw-bold text-success">${formattedPrice}/jam</td>
-            <td>${size}</td>
-            <td>${floor}</td>
+            <td class="fw-bold text-success">${formattedPrice}<span class="fw-normal text-muted fs-7">/jam</span></td>
+            <td><span class="badge bg-success">Tersedia</span></td>
+            <td><span class="text-muted small">Belum ada jadwal</span></td>
             <td>
                 <div class="d-flex justify-content-center gap-2">
                     <button class="btn btn-sm btn-outline-primary" onclick="alert('Ini simulasi edit ruangan baru')" title="Ubah Data">
@@ -312,9 +324,8 @@
             row.cells[1].querySelector('.fw-bold').innerText = name;
             row.cells[2].querySelector('.badge').innerText = type;
             row.cells[3].innerText = `${capacity} Pax`;
-            row.cells[4].innerText = `${formattedPrice}/jam`;
-            row.cells[5].innerText = size;
-            row.cells[6].innerText = floor;
+            row.cells[4].innerHTML = `${formattedPrice}<span class="fw-normal text-muted fs-7">/jam</span>`;
+            // Keep cells 5 and 6 as is for Status and Jadwal Terdekat
         }
 
         editModal.hide();

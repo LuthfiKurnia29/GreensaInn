@@ -186,75 +186,66 @@ Route::get('/room/{id}', function ($id) {
     return view('detail', compact('room'));
 });
 
-Route::get('/admin', [DashboardController::class, 'index']);
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/admin', [DashboardController::class, 'index']);
+    Route::patch('/admin/peminjaman/{id}/status', [DashboardController::class, 'updateStatus'])->name('admin.peminjaman.status');
 
-Route::get('/admin/rooms', function () {
-    $rooms = getMockRooms();
-    return view('admin.rooms', compact('rooms'));
+    Route::get('/admin/rooms', function () {
+        $mockRooms = getMockRooms();
+        $dbRooms = \App\Models\Ruangan::with(['peminjaman' => function($query) {
+            $query->where('status', 'approved')
+                  ->where(function($q) {
+                      $q->where('tanggal_mulai', '>', now()->toDateString())
+                        ->orWhere(function($q2) {
+                            $q2->where('tanggal_mulai', now()->toDateString())
+                               ->where('waktu_selesai', '>', now()->toTimeString());
+                        });
+                  })
+                  ->orderBy('tanggal_mulai', 'asc')
+                  ->orderBy('waktu_mulai', 'asc');
+        }])->get();
+
+        $rooms = [];
+        foreach ($mockRooms as $id => $room) {
+            $dbRoom = $dbRooms->firstWhere('id', $id);
+            $room['status_tersedia'] = $dbRoom ? $dbRoom->status_tersedia : 'tersedia';
+            
+            $nextSchedule = null;
+            if ($dbRoom && $dbRoom->peminjaman->count() > 0) {
+                $next = $dbRoom->peminjaman->first();
+                $nextSchedule = \Carbon\Carbon::parse($next->tanggal_mulai)->translatedFormat('d M') . ', ' . 
+                                \Carbon\Carbon::parse($next->waktu_mulai)->format('H:i') . '-' . 
+                                \Carbon\Carbon::parse($next->waktu_selesai)->format('H:i');
+                
+                // Check if currently ongoing
+                if ($next->tanggal_mulai == now()->toDateString() && 
+                    $next->waktu_mulai <= now()->toTimeString() && 
+                    $next->waktu_selesai >= now()->toTimeString()) {
+                    $room['status_tersedia'] = 'terpakai';
+                }
+            }
+            $room['next_schedule'] = $nextSchedule ?? '-';
+            $rooms[$id] = $room;
+        }
+
+        return view('admin.rooms', compact('rooms'));
+    });
+
+    Route::get('/admin/reviews', function () {
+        $reviews = \App\Models\Peminjaman::with(['user', 'ruangan'])
+            ->whereIn('status', ['approved', 'rejected', 'completed'])
+            ->latest()
+            ->get();
+        return view('admin.booking-reviews', compact('reviews'));
+    });
+
+    Route::get('/admin/fasilitas', [FasilitasController::class, 'index'])->name('admin.fasilitas.index');
+    Route::get('/admin/fasilitas/create', [FasilitasController::class, 'create'])->name('admin.fasilitas.create');
+    Route::post('/admin/fasilitas', [FasilitasController::class, 'store'])->name('admin.fasilitas.store');
+    Route::get('/admin/fasilitas/{id}/edit', [FasilitasController::class, 'edit'])->name('admin.fasilitas.edit');
+    Route::put('/admin/fasilitas/{id}', [FasilitasController::class, 'update'])->name('admin.fasilitas.update');
+    Route::delete('/admin/fasilitas/{id}', [FasilitasController::class, 'destroy'])->name('admin.fasilitas.destroy');
 });
-
-Route::get('/admin/reviews', function () {
-    $reviews = [
-        [
-            'id' => 'REV-801',
-            'booker' => 'Ahmad Syarif',
-            'role' => 'Ketua Himpunan Mahasiswa FST',
-            'type' => 'Internal UINSA',
-            'room' => 'Creative Hub & Jam Space',
-            'date' => 'Senin, 25 Mei 2026',
-            'time' => '10:00 - 13:00 (3 jam)',
-            'price' => 285000,
-            'status' => 'Menunggu Review',
-            'note' => 'Kegiatan Rapat Koordinasi Program Kerja Divisi Minat Bakat Himpunan Mahasiswa.'
-        ],
-        [
-            'id' => 'REV-802',
-            'booker' => 'Riana Dewanti',
-            'role' => 'HR Specialist PT. Digital Indo',
-            'type' => 'Eksternal',
-            'room' => 'Emerald Executive Boardroom',
-            'date' => 'Selasa, 26 Mei 2026',
-            'time' => '09:00 - 12:00 (3 jam)',
-            'price' => 450000,
-            'status' => 'Menunggu Pembayaran DP',
-            'note' => 'Agenda rekrutmen wawancara kandidat manager operasional wilayah timur.'
-        ],
-        [
-            'id' => 'REV-803',
-            'booker' => 'Hendra Setiawan',
-            'role' => 'Training Coordinator LKP Mandiri',
-            'type' => 'Eksternal',
-            'room' => 'Synergy Seminar Hall',
-            'date' => 'Rabu, 27 Mei 2026',
-            'time' => '08:00 - 12:00 (4 jam)',
-            'price' => 1120000,
-            'status' => 'Menunggu Verifikasi DP',
-            'note' => 'Pelaksanaan seminar karir dan workshop penulisan CV kreatif tingkat regional.',
-            'proof_img' => 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?q=80&w=600'
-        ],
-        [
-            'id' => 'REV-804',
-            'booker' => 'Prof. Dr. H. Moh. Ali, M.Ag.',
-            'role' => 'Staf Bidang Akademik Rektorat',
-            'type' => 'Internal UINSA',
-            'room' => 'Emerald Executive Boardroom',
-            'date' => 'Kamis, 28 Mei 2026',
-            'time' => '13:00 - 15:00 (2 jam)',
-            'price' => 300000,
-            'status' => 'Menunggu Review',
-            'note' => 'Rapat koordinasi persiapan visitasi akreditasi internasional fakultas.'
-        ],
-    ];
-
-    return view('admin.booking-reviews', compact('reviews'));
-});
-
-Route::get('/admin/fasilitas', [FasilitasController::class, 'index'])->name('admin.fasilitas.index');
-Route::get('/admin/fasilitas/create', [FasilitasController::class, 'create'])->name('admin.fasilitas.create');
-Route::post('/admin/fasilitas', [FasilitasController::class, 'store'])->name('admin.fasilitas.store');
-Route::get('/admin/fasilitas/{id}/edit', [FasilitasController::class, 'edit'])->name('admin.fasilitas.edit');
-Route::put('/admin/fasilitas/{id}', [FasilitasController::class, 'update'])->name('admin.fasilitas.update');
-Route::delete('/admin/fasilitas/{id}', [FasilitasController::class, 'destroy'])->name('admin.fasilitas.destroy');
 
 // Auth Routes
 Route::middleware('guest')->group(function () {

@@ -25,6 +25,9 @@ class AuthController extends Controller
             $request->session()->regenerate();
             
             // Redirect based on role later if needed, now just admin or home
+            if(Auth::user()->role == 'admin') {
+                return redirect()->intended('/admin');
+            }
             return redirect()->intended('/');
         }
 
