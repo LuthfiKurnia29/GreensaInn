@@ -132,7 +132,17 @@
                             <span class="text-muted small" style="font-size: 0.8rem;"><i class="fa-regular fa-clock me-1"></i>{{ \Carbon\Carbon::parse($booking->waktu_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($booking->waktu_selesai)->format('H:i') }}</span>
                         </td>
                         <td>
-                            <p class="text-truncate mb-0 small" style="max-width: 200px;" title="{{ $booking->tujuan_rapat }}">{{ $booking->tujuan_rapat }}</p>
+                            <p class="text-truncate mb-1 small" style="max-width: 200px;" title="{{ $booking->tujuan_rapat }}">{{ $booking->tujuan_rapat }}</p>
+                            @if($booking->detailFasilitas->isNotEmpty())
+                                <div class="small text-muted mt-1">
+                                    <strong>Fasilitas:</strong>
+                                    <ul class="mb-0 ps-3">
+                                    @foreach($booking->detailFasilitas as $detail)
+                                        <li>{{ $detail->fasilitas->nama_fasilitas }} ({{ $detail->stok_tersedia }})</li>
+                                    @endforeach
+                                    </ul>
+                                </div>
+                            @endif
                         </td>
                         <td class="fw-bold text-primary-custom">-</td>
                         <td>

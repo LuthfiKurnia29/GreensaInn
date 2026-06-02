@@ -28,4 +28,9 @@ class Peminjaman extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function detailFasilitas()
+    {
+        return $this->hasMany(DetailPeminjamanFasilitas::class);
+    }
 }

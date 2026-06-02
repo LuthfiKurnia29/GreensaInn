@@ -284,24 +284,20 @@
 
                 <!-- Interactive Time Slot Selection -->
                 <div class="mb-5">
-                    <h3 class="h4 mb-2 border-bottom pb-2 border-light">Pilih Jam Pertemuan</h3>
-                    <p class="text-muted small mb-4"><i class="fa-solid fa-circle-info me-2 text-primary-custom"></i>Klik slot waktu yang tersedia untuk memilih jam booking rapat Anda. Anda bisa memilih beberapa jam sekaligus secara berurutan.</p>
-                    
-                    <div class="slot-grid" id="timeSlotsContainer">
-                        @foreach($room['calendar'] as $time => $status)
-                            @if($status === 'tersedia')
-                                <div class="time-slot-btn available" data-time="{{ $time }}" onclick="toggleSlot(this)">
-                                    <i class="fa-regular fa-clock me-1"></i> {{ $time }}
-                                    <div class="small fw-normal text-muted mt-1 fs-7">Tersedia</div>
-                                </div>
-                            @else
-                                <div class="time-slot-btn booked">
-                                    <i class="fa-solid fa-ban me-1"></i> {{ $time }}
-                                    <div class="small fw-normal mt-1 fs-7">Terisi</div>
-                                </div>
-                            @endif
-                        @endforeach
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h3 class="h4 mb-0 border-bottom pb-2 border-light w-100">Pilih Jam Pertemuan</h3>
                     </div>
+                    <p class="text-muted small mb-3"><i class="fa-solid fa-circle-info me-2 text-primary-custom"></i>Slot <span class="badge bg-danger-subtle text-danger fw-semibold px-2 py-1"><i class="fa-solid fa-ban me-1"></i>Terisi</span> tidak dapat dipilih. Jam yang tersedia bisa dipilih beberapa sekaligus secara berurutan.</p>
+                    <div class="d-flex align-items-center gap-3 mb-3 small">
+                        <div class="d-flex align-items-center gap-1"><div style="width:14px;height:14px;border-radius:4px;background:white;border:1.5px solid var(--primary-color);"></div> Tersedia</div>
+                        <div class="d-flex align-items-center gap-1"><div style="width:14px;height:14px;border-radius:4px;background:var(--primary-color);"></div> Dipilih</div>
+                        <div class="d-flex align-items-center gap-1"><div style="width:14px;height:14px;border-radius:4px;background:#f1f3f5;border:1.5px solid #e9ecef;"></div> Terisi/Diblokir</div>
+                    </div>
+                    <div id="slotLoading" class="text-center py-4 d-none">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="ms-2 small text-muted">Memuat ketersediaan slot...</span>
+                    </div>
+                    <div class="slot-grid" id="timeSlotsContainer"></div>
                 </div>
             </div>
 
@@ -457,27 +453,113 @@
 
 @section('scripts')
 <script>
-    const hourlyPrice = {{ $room['price'] }};
-    let selectedSlots = [];
+    const hourlyPrice  = {{ $room['price'] }};
+    const ruanganId    = {{ $room['id'] }};
+    // Slots tersedia: jam 07:00 sampai 21:00 (slot per jam)
+    const ALL_SLOTS    = ['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'];
+    let selectedSlots  = [];
+    // Booked ranges dari server (diisi saat init & saat tanggal berubah)
+    let bookedRanges   = @json($bookedSlots);
 
-    // Switch main image gallery
-    function switchMainImage(imgUrl, el) {
-        document.getElementById('mainGalleryImg').src = imgUrl;
-        document.querySelectorAll('.gallery-thumbnail').forEach(thumb => {
-            thumb.classList.remove('active');
+    // -------------------------------------------------------
+    // Helper: cek apakah slot jam H:00 overlap dengan suatu booking range
+    // Booking menempati dari waktu_mulai s/d waktu_selesai (eksklusif selesai)
+    // Slot "08:00" berarti jam 08:00 - 09:00
+    // -------------------------------------------------------
+    function isSlotBooked(slotTime, ranges) {
+        const [sh, sm] = slotTime.split(':').map(Number);
+        const slotStart = sh * 60 + sm;       // menit mulai slot
+        const slotEnd   = slotStart + 60;     // menit akhir slot (eksklusif)
+
+        return ranges.some(r => {
+            const [bmh, bmm] = r.mulai.split(':').map(Number);
+            const [bsh, bsm] = r.selesai.split(':').map(Number);
+            const bookStart = bmh * 60 + bmm;
+            const bookEnd   = bsh * 60 + bsm;
+            // Overlap jika slot tidak sepenuhnya sebelum atau sesudah booking
+            return slotStart < bookEnd && slotEnd > bookStart;
         });
-        el.classList.add('active');
     }
 
-    // Toggle selected time slot
+    // -------------------------------------------------------
+    // Render semua slot ke dalam #timeSlotsContainer
+    // -------------------------------------------------------
+    function renderSlots(ranges) {
+        selectedSlots = [];   // reset pilihan saat re-render
+        updateBookingSummary();
+
+        const container = document.getElementById('timeSlotsContainer');
+        container.innerHTML = '';
+
+        ALL_SLOTS.forEach(slotTime => {
+            const booked = isSlotBooked(slotTime, ranges);
+            const div    = document.createElement('div');
+
+            if (booked) {
+                div.className = 'time-slot-btn booked';
+                div.innerHTML = `<i class="fa-solid fa-ban me-1"></i> ${slotTime}<div class="small fw-normal mt-1 fs-7">Terisi</div>`;
+            } else {
+                div.className = 'time-slot-btn available';
+                div.setAttribute('data-time', slotTime);
+                div.setAttribute('onclick', 'toggleSlot(this)');
+                div.innerHTML = `<i class="fa-regular fa-clock me-1"></i> ${slotTime}<div class="small fw-normal text-muted mt-1 fs-7">Tersedia</div>`;
+            }
+            container.appendChild(div);
+        });
+    }
+
+    // Render awal dengan data dari PHP (halaman pertama kali load)
+    document.addEventListener('DOMContentLoaded', function () {
+        renderSlots(bookedRanges);
+    });
+
+    // -------------------------------------------------------
+    // AJAX: refresh slot saat tanggal berubah
+    // -------------------------------------------------------
+    const dateInput = document.getElementById('bookingDate');
+    if (dateInput) {
+        dateInput.addEventListener('change', function () {
+            const date = this.value;
+            if (!date) return;
+
+            const loading   = document.getElementById('slotLoading');
+            const container = document.getElementById('timeSlotsContainer');
+
+            loading.classList.remove('d-none');
+            container.classList.add('d-none');
+
+            fetch(`/api/booked-slots/${ruanganId}?date=${date}`)
+                .then(res => res.json())
+                .then(data => {
+                    bookedRanges = data.booked;
+                    renderSlots(bookedRanges);
+                })
+                .catch(() => {
+                    // Jika gagal, anggap semua tersedia
+                    renderSlots([]);
+                })
+                .finally(() => {
+                    loading.classList.add('d-none');
+                    container.classList.remove('d-none');
+                });
+        });
+    }
+
+    // -------------------------------------------------------
+    // Toggle pilihan slot
+    // -------------------------------------------------------
     function toggleSlot(el) {
         const timeVal = el.getAttribute('data-time');
 
         if (el.classList.contains('selected')) {
             el.classList.remove('selected');
+            el.querySelector('.small').innerText = 'Tersedia';
+            el.querySelector('.small').classList.add('text-muted');
             selectedSlots = selectedSlots.filter(t => t !== timeVal);
         } else {
             el.classList.add('selected');
+            el.querySelector('.small').innerText = 'Dipilih';
+            el.querySelector('.small').classList.remove('text-muted');
             selectedSlots.push(timeVal);
         }
 
@@ -485,41 +567,39 @@
         updateBookingSummary();
     }
 
-    // Update booking form and recalculate pricing
+    // -------------------------------------------------------
+    // Update form & kalkulasi harga
+    // -------------------------------------------------------
     function updateBookingSummary() {
-        const slotsCount = selectedSlots.length;
-        const displayField = document.getElementById('selectedSlotsDisplay');
-        const submitBtn = document.getElementById('submitBookingBtn');
-        const calcBox = document.getElementById('priceCalculatorBox');
-
-        // Hidden inputs for real form submission (waktu_mulai & waktu_selesai)
+        const slotsCount    = selectedSlots.length;
+        const displayField  = document.getElementById('selectedSlotsDisplay');
+        const submitBtn     = document.getElementById('submitBookingBtn');
+        const calcBox       = document.getElementById('priceCalculatorBox');
         const hiddenMulai   = document.getElementById('hiddenWaktuMulai');
         const hiddenSelesai = document.getElementById('hiddenWaktuSelesai');
 
         if (slotsCount === 0) {
-            if (displayField) displayField.value = '';
-            if (submitBtn) submitBtn.disabled = true;
-            if (calcBox) calcBox.style.display = 'none';
-            if (hiddenMulai)   hiddenMulai.value   = '';
+            if (displayField)  displayField.value   = '';
+            if (submitBtn)     submitBtn.disabled   = true;
+            if (calcBox)       calcBox.style.display = 'none';
+            if (hiddenMulai)   hiddenMulai.value    = '';
             if (hiddenSelesai) hiddenSelesai.value  = '';
             return;
         }
 
-        // Display string: "08:00, 09:00 (2 jam)"
         if (displayField) displayField.value = selectedSlots.join(', ') + ` (${slotsCount} jam)`;
-        if (submitBtn) submitBtn.disabled = false;
-        if (calcBox) calcBox.style.display = 'block';
+        if (submitBtn)    submitBtn.disabled  = false;
+        if (calcBox)      calcBox.style.display = 'block';
 
-        // Set hidden time fields: mulai = first slot, selesai = last slot + 1 hour
+        // waktu_mulai = slot pertama, waktu_selesai = slot terakhir + 1 jam
         if (hiddenMulai)   hiddenMulai.value   = selectedSlots[0] + ':00';
         if (hiddenSelesai) {
-            const lastSlot = selectedSlots[selectedSlots.length - 1];
-            const [h, m] = lastSlot.split(':').map(Number);
-            const selesaiH = String(h + 1).padStart(2, '0');
+            const lastSlot  = selectedSlots[selectedSlots.length - 1];
+            const [h, m]    = lastSlot.split(':').map(Number);
+            const selesaiH  = String(h + 1).padStart(2, '0');
             hiddenSelesai.value = `${selesaiH}:${String(m).padStart(2, '0')}:00`;
         }
 
-        // Price calculation
         const rawPrice   = hourlyPrice * slotsCount;
         const serviceTax = Math.round(rawPrice * 0.1);
         const totalPrice = rawPrice + serviceTax;
@@ -530,8 +610,8 @@
         const calcTotal = document.getElementById('calcTotalPrice');
 
         if (calcHours) calcHours.innerText = `${slotsCount} jam`;
-        if (calcRoom)  calcRoom.innerText  = formatRupiah(rawPrice);
-        if (calcTax)   calcTax.innerText   = formatRupiah(serviceTax);
+        if (calcRoom)  calcRoom.innerText   = formatRupiah(rawPrice);
+        if (calcTax)   calcTax.innerText    = formatRupiah(serviceTax);
         if (calcTotal) calcTotal.innerText  = formatRupiah(totalPrice);
     }
 
@@ -539,7 +619,14 @@
         return 'Rp ' + num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
 
-    // Auto-open success modal if session has booking_success flag
+    // Switch main image gallery
+    function switchMainImage(imgUrl, el) {
+        document.getElementById('mainGalleryImg').src = imgUrl;
+        document.querySelectorAll('.gallery-thumbnail').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    // Auto-open success modal jika session ada booking_success
     @if(session('booking_success'))
     document.addEventListener('DOMContentLoaded', function () {
         const modal = new bootstrap.Modal(document.getElementById('successBookingModal'));
@@ -548,4 +635,3 @@
     @endif
 </script>
 @endsection
-

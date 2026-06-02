@@ -257,9 +257,23 @@
         const size = document.getElementById('addSize').value;
         const floor = document.getElementById('addFloor').value;
         const photo = document.getElementById('addPhoto').value;
+        const description = document.getElementById('addDesc').value;
         
         // Generate new dummy ID
         const newId = Math.floor(Math.random() * 1000) + 10;
+        
+        const newRoomData = {
+            id: newId,
+            name: name,
+            type: type,
+            capacity: capacity,
+            price: price,
+            size: size,
+            floor: floor,
+            images: [photo],
+            description: description
+        };
+        const encodedRoom = JSON.stringify(newRoomData).replace(/"/g, '&quot;');
         
         // Format price to IDR
         const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price).replace("Rp", "Rp ");
@@ -283,7 +297,7 @@
             <td><span class="text-muted small">Belum ada jadwal</span></td>
             <td>
                 <div class="d-flex justify-content-center gap-2">
-                    <button class="btn btn-sm btn-outline-primary" onclick="alert('Ini simulasi edit ruangan baru')" title="Ubah Data">
+                    <button class="btn btn-sm btn-outline-primary" onclick="openEditModal(${encodedRoom})" title="Ubah Data">
                         <i class="fa-solid fa-pencil"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete('${newId}', '${name}')" title="Hapus Ruangan">
