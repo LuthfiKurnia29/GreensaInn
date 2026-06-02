@@ -91,9 +91,35 @@
                         <div class="text-danger small mt-1 d-none" id="capacityWarning"><i class="fa-solid fa-circle-exclamation me-1"></i>Jumlah peserta melebihi kapasitas maksimal ruangan ini.</div>
                     </div>
 
-                    <div class="mb-5">
+                    <div class="mb-4">
                         <label class="form-label small fw-bold text-muted">TUJUAN RAPAT / AGENDA</label>
                         <textarea class="form-control p-3 border-light-subtle rounded-3" name="tujuan_rapat" rows="4" placeholder="Contoh: Rapat Koordinasi Kuartal 1, Training Staf Baru, dll." required maxlength="500">{{ old('tujuan_rapat') }}</textarea>
+                    </div>
+
+                    <h5 class="fw-bold mb-4 mt-5 border-bottom pb-2 text-dark"><i class="fa-solid fa-couch me-2 text-primary-custom"></i>4. Fasilitas Tambahan (Opsional)</h5>
+                    
+                    <div class="mb-5">
+                        <p class="small text-muted mb-3">Pilih fasilitas tambahan yang Anda butuhkan (masukkan jumlah).</p>
+                        <div class="row g-3">
+                            @foreach($fasilitas as $item)
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center justify-content-between p-3 border border-light-subtle rounded-3">
+                                        <div>
+                                            <div class="fw-bold">{{ $item->nama_fasilitas }}</div>
+                                            <div class="small text-muted">Tersedia: {{ $item->stok_tersedia }}</div>
+                                        </div>
+                                        <div style="width: 100px;">
+                                            <input type="number" class="form-control text-center" name="fasilitas[{{ $item->id }}]" value="0" min="0" max="{{ $item->stok_tersedia }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                            @if($fasilitas->isEmpty())
+                                <div class="col-12">
+                                    <div class="alert alert-info small mb-0">Saat ini tidak ada fasilitas tambahan yang tersedia.</div>
+                                </div>
+                            @endif
+                        </div>
                     </div>
                     
                     <button type="submit" class="btn btn-accent btn-lg w-100 py-3 fw-bold shadow-sm" id="submitBtn" disabled>

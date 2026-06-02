@@ -183,8 +183,38 @@ Route::get('/room/{id}', function ($id) {
         abort(404, 'Ruang rapat tidak ditemukan');
     }
     $room = $rooms[$id];
-    return view('detail', compact('room'));
+
+    // Ambil booking yang sudah disetujui (approved/pending) untuk hari ini
+    $today = \Carbon\Carbon::today()->toDateString();
+    $bookedSlots = \App\Models\Peminjaman::where('ruangan_id', $id)
+        ->whereIn('status', ['approved', 'pending'])
+        ->where('tanggal_mulai', $today)
+        ->get(['waktu_mulai', 'waktu_selesai'])
+        ->map(fn($p) => [
+            'mulai'   => substr($p->waktu_mulai, 0, 5),
+            'selesai' => substr($p->waktu_selesai, 0, 5),
+        ])
+        ->values();
+
+    return view('detail', compact('room', 'bookedSlots'));
 });
+
+// API endpoint: ambil booked slots berdasarkan ruangan_id + tanggal (AJAX)
+Route::get('/api/booked-slots/{ruangan_id}', function ($ruangan_id, \Illuminate\Http\Request $request) {
+    $date = $request->query('date', \Carbon\Carbon::today()->toDateString());
+
+    $bookedSlots = \App\Models\Peminjaman::where('ruangan_id', $ruangan_id)
+        ->whereIn('status', ['approved', 'pending'])
+        ->where('tanggal_mulai', $date)
+        ->get(['waktu_mulai', 'waktu_selesai'])
+        ->map(fn($p) => [
+            'mulai'   => substr($p->waktu_mulai, 0, 5),
+            'selesai' => substr($p->waktu_selesai, 0, 5),
+        ])
+        ->values();
+
+    return response()->json(['booked' => $bookedSlots]);
+})->name('api.booked-slots');
 
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin', [DashboardController::class, 'index']);
@@ -261,7 +291,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 Route::middleware('auth')->group(function () {
     Route::get('/booking', function () {
         $rooms = getMockRooms();
-        return view('booking', compact('rooms'));
+        $fasilitas = \App\Models\Fasilitas::where('stok_tersedia', '>', 0)->get();
+        return view('booking', compact('rooms', 'fasilitas'));
     })->name('booking.index');
     
     Route::post('/booking/{ruangan_id}', [BookingController::class, 'store'])->name('booking.store');

@@ -10,7 +10,7 @@ class DashboardController extends Controller
     public function index()
     {
         $rooms = getMockRooms();
-        $bookings = \App\Models\Peminjaman::with(['user', 'ruangan'])->latest()->get();
+        $bookings = \App\Models\Peminjaman::with(['user', 'ruangan', 'detailFasilitas.fasilitas'])->latest()->get();
 
         // Stats
         $stats = [

@@ -30,7 +30,7 @@ class BookingController extends Controller
             'tujuan_rapat.required'   => 'Tujuan rapat wajib diisi.',
         ]);
 
-        Peminjaman::create([
+        $peminjaman = Peminjaman::create([
             'ruangan_id'     => $ruangan_id,
             'user_id'        => Auth::id(),
             'tanggal_mulai'  => $request->tanggal_mulai,
@@ -40,6 +40,18 @@ class BookingController extends Controller
             'jumlah_peserta' => $request->jumlah_peserta,
             'tujuan_rapat'   => $request->tujuan_rapat,
         ]);
+
+        if ($request->has('fasilitas')) {
+            foreach ($request->fasilitas as $fasilitas_id => $qty) {
+                if ($qty > 0) {
+                    \App\Models\DetailPeminjamanFasilitas::create([
+                        'peminjaman_id' => $peminjaman->id,
+                        'fasilitas_id'  => $fasilitas_id,
+                        'stok_tersedia' => $qty,
+                    ]);
+                }
+            }
+        }
 
         return redirect("/room/{$ruangan_id}")
             ->with('booking_success', true)
