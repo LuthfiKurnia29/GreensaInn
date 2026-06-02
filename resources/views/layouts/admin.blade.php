@@ -323,8 +323,8 @@
                 <div class="d-flex align-items-center gap-2 border-start ps-3 border-light">
                     <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop" class="rounded-circle border border-2 border-light shadow-sm" style="width: 40px; height: 40px; object-fit: cover;" alt="Admin Avatar">
                     <div class="d-none d-md-block">
-                        <div class="small fw-bold text-dark lh-sm">Siti Rahma</div>
-                        <span class="text-muted small" style="font-size: 0.75rem;">Super Admin</span>
+                        <div class="small fw-bold text-dark lh-sm">{{ Auth::user()->name }}</div>
+                        <span class="text-muted small" style="font-size: 0.75rem;">{{ Auth::user()->role }}</span>
                     </div>
                 </div>
             </div>

@@ -52,9 +52,9 @@
                     <i class="fa-regular fa-calendar-check"></i>
                 </div>
             </div>
-            <div class="mt-3 small text-muted">
+            <!-- <div class="mt-3 small text-muted">
                 <span class="text-success fw-bold"><i class="fa-solid fa-arrow-up me-1"></i>+12%</span> dibanding pekan lalu
-            </div>
+            </div> -->
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
@@ -68,12 +68,12 @@
                     <i class="fa-regular fa-clock"></i>
                 </div>
             </div>
-            <div class="mt-3 small text-muted">
+            <!-- <div class="mt-3 small text-muted">
                 <span class="text-danger fw-bold"><i class="fa-solid fa-arrow-down me-1"></i>-3%</span> dibanding bulan lalu
-            </div>
+            </div> -->
         </div>
     </div>
-    <div class="col-xl-3 col-md-6">
+    <!-- <div class="col-xl-3 col-md-6">
         <div class="stat-card">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
@@ -88,7 +88,7 @@
                 <span class="text-success fw-bold"><i class="fa-solid fa-arrow-up me-1"></i>+18.5%</span> dari target Q2
             </div>
         </div>
-    </div>
+    </div> -->
 </div>
 
 <!-- Recent Bookings Table -->
@@ -118,39 +118,41 @@
                 </thead>
                 <tbody>
                     @foreach($bookings as $booking)
-                    <tr id="row-{{ $booking['id'] }}">
-                        <td class="fw-bold text-dark">{{ $booking['id'] }}</td>
+                    <tr id="row-{{ $booking->id }}">
+                        <td class="fw-bold text-dark">BK-{{ str_pad($booking->id, 4, '0', STR_PAD_LEFT) }}</td>
                         <td>
-                            <div class="fw-semibold text-dark">{{ $booking['user'] }}</div>
+                            <div class="fw-semibold text-dark">{{ $booking->user->nama_lengkap ?? 'Unknown' }}</div>
                             <span class="text-muted small" style="font-size: 0.75rem;">Umum</span>
                         </td>
                         <td>
-                            <div class="fw-semibold text-dark">{{ $booking['room'] }}</div>
+                            <div class="fw-semibold text-dark">{{ $booking->ruangan->nama_ruangan ?? 'Unknown' }}</div>
                         </td>
                         <td>
-                            <div class="fw-semibold text-dark">{{ $booking['date'] }}</div>
-                            <span class="text-muted small" style="font-size: 0.8rem;"><i class="fa-regular fa-clock me-1"></i>{{ $booking['time'] }}</span>
+                            <div class="fw-semibold text-dark">{{ \Carbon\Carbon::parse($booking->tanggal_mulai)->translatedFormat('l, d M Y') }}</div>
+                            <span class="text-muted small" style="font-size: 0.8rem;"><i class="fa-regular fa-clock me-1"></i>{{ \Carbon\Carbon::parse($booking->waktu_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($booking->waktu_selesai)->format('H:i') }}</span>
                         </td>
                         <td>
-                            <p class="text-truncate mb-0 small" style="max-width: 200px;" title="{{ $booking['purpose'] }}">{{ $booking['purpose'] }}</p>
+                            <p class="text-truncate mb-0 small" style="max-width: 200px;" title="{{ $booking->tujuan_rapat }}">{{ $booking->tujuan_rapat }}</p>
                         </td>
-                        <td class="fw-bold text-primary-custom">Rp {{ number_format($booking['price'], 0, ',', '.') }}</td>
+                        <td class="fw-bold text-primary-custom">-</td>
                         <td>
-                            @if($booking['status'] === 'Disetujui')
-                                <span class="badge-status success" id="badge-{{ $booking['id'] }}">Disetujui</span>
-                            @elseif($booking['status'] === 'Menunggu Konfirmasi')
-                                <span class="badge-status warning" id="badge-{{ $booking['id'] }}">Menunggu Konfirmasi</span>
+                            @if($booking->status === 'approved')
+                                <span class="badge-status success" id="badge-{{ $booking->id }}">Disetujui</span>
+                            @elseif($booking->status === 'pending')
+                                <span class="badge-status warning" id="badge-{{ $booking->id }}">Menunggu Konfirmasi</span>
+                            @elseif($booking->status === 'completed')
+                                <span class="badge-status bg-info text-white" id="badge-{{ $booking->id }}">Selesai</span>
                             @else
-                                <span class="badge-status danger" id="badge-{{ $booking['id'] }}">Dibatalkan</span>
+                                <span class="badge-status danger" id="badge-{{ $booking->id }}">Dibatalkan</span>
                             @endif
                         </td>
                         <td>
-                            <div class="d-flex justify-content-center gap-2" id="action-box-{{ $booking['id'] }}">
-                                @if($booking['status'] === 'Menunggu Konfirmasi')
-                                    <button class="btn btn-outline-success btn-sm px-2 py-1" onclick="approveBooking('{{ $booking['id'] }}')" title="Setujui Pemesanan">
+                            <div class="d-flex justify-content-center gap-2" id="action-box-{{ $booking->id }}">
+                                @if($booking->status === 'pending')
+                                    <button class="btn btn-outline-success btn-sm px-2 py-1" onclick="approveBooking('{{ $booking->id }}')" title="Setujui Pemesanan">
                                         <i class="fa-solid fa-check me-1"></i> Setujui
                                     </button>
-                                    <button class="btn btn-outline-danger btn-sm px-2 py-1" onclick="rejectBooking('{{ $booking['id'] }}')" title="Tolak Pemesanan">
+                                    <button class="btn btn-outline-danger btn-sm px-2 py-1" onclick="rejectBooking('{{ $booking->id }}')" title="Tolak Pemesanan">
                                         <i class="fa-solid fa-xmark me-1"></i> Tolak
                                     </button>
                                 @else
@@ -182,33 +184,49 @@
 
 @section('scripts')
 <script>
-    // Live interactive approval simulation
+    function updateBookingStatus(id, status) {
+        fetch(`/admin/peminjaman/${id}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                // Update badge UI
+                const badge = document.getElementById('badge-' + id);
+                if (status === 'approved') {
+                    badge.className = 'badge-status success';
+                    badge.innerText = 'Disetujui';
+                    showToast(`Reservasi BK-${id.toString().padStart(4, '0')} berhasil disetujui!`, 'success');
+                } else {
+                    badge.className = 'badge-status danger';
+                    badge.innerText = 'Ditolak';
+                    showToast(`Reservasi BK-${id.toString().padStart(4, '0')} ditolak!`, 'danger');
+                }
+
+                // Update actions column
+                const actionBox = document.getElementById('action-box-' + id);
+                actionBox.innerHTML = '<span class="text-muted small"><i class="fa-solid fa-circle-info me-1"></i>Telah Diproses</span>';
+            } else {
+                showToast(`Gagal: ${data.message}`, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast(`Terjadi kesalahan sistem saat menghubungi server.`, 'danger');
+        });
+    }
+
     function approveBooking(id) {
-        // Update badge UI
-        const badge = document.getElementById('badge-' + id);
-        badge.className = 'badge-status success';
-        badge.innerText = 'Disetujui';
-
-        // Update actions column
-        const actionBox = document.getElementById('action-box-' + id);
-        actionBox.innerHTML = '<span class="text-muted small"><i class="fa-solid fa-circle-info me-1"></i>Telah Diproses</span>';
-
-        // Show success toast
-        showToast(`Reservasi ${id} berhasil disetujui!`, 'success');
+        updateBookingStatus(id, 'approved');
     }
 
     function rejectBooking(id) {
-        // Update badge UI
-        const badge = document.getElementById('badge-' + id);
-        badge.className = 'badge-status danger';
-        badge.innerText = 'Dibatalkan';
-
-        // Update actions column
-        const actionBox = document.getElementById('action-box-' + id);
-        actionBox.innerHTML = '<span class="text-muted small"><i class="fa-solid fa-circle-info me-1"></i>Telah Diproses</span>';
-
-        // Show failure toast
-        showToast(`Reservasi ${id} ditolak/dibatalkan!`, 'danger');
+        updateBookingStatus(id, 'rejected');
     }
 
     // Helper: trigger bootstrap toast
