@@ -402,7 +402,7 @@
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container">
             <a class="navbar-brand" href="{{ url('/') }}">
-                <i class="fa-solid fa-hotel me-2"></i>Greensa<span>Inn</span>
+                <img src="{{ asset('assets/images/logoGreenSa.jpeg') }}" alt="Logo" style="width: 100px; height: 80px;" />
             </a>
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -461,7 +461,11 @@
                                 Halo, {{ explode(' ', Auth::user()->nama_lengkap ?? 'Pengguna')[0] }}
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm mt-2" style="border-radius: 12px;">
-                                <li><a class="dropdown-item py-2" href="{{ url('/admin') }}"><i class="fa-solid fa-gauge me-2"></i>Dashboard Admin</a></li>
+                                @if(Auth::user()->role === 'admin')
+                                    <li><a class="dropdown-item py-2" href="{{ url('/admin') }}"><i class="fa-solid fa-gauge me-2"></i>Dashboard Admin</a></li>
+                                @else
+                                    <li><a class="dropdown-item py-2" href="{{ url('/user/dashboard') }}"><i class="fa-solid fa-clipboard-list me-2"></i>Pesanan Saya</a></li>
+                                @endif
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form action="{{ route('logout') }}" method="POST">

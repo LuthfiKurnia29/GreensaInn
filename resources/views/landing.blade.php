@@ -179,7 +179,7 @@
                 </div>
             </div>
             <div class="col-lg-6 d-none d-lg-block animate-fade-in delay-1">
-                <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1200&auto=format&fit=crop" class="img-fluid rounded-4 shadow-lg border border-secondary border-opacity-25" alt="Meeting Room Hero">
+                <img src="{{ asset('assets/images/greensa1.jpg') }}" class="img-fluid rounded-4 shadow-lg border border-secondary border-opacity-25" alt="Meeting Room Hero">
             </div>
         </div>
     </div>

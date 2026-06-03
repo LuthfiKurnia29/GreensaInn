@@ -30,16 +30,29 @@ class BookingController extends Controller
             'tujuan_rapat.required'   => 'Tujuan rapat wajib diisi.',
         ]);
 
+        $isExternal = Auth::user()->instansi === 'umum';
+
         $peminjaman = Peminjaman::create([
-            'ruangan_id'     => $ruangan_id,
-            'user_id'        => Auth::id(),
-            'tanggal_mulai'  => $request->tanggal_mulai,
-            'waktu_mulai'    => $request->waktu_mulai,
-            'waktu_selesai'  => $request->waktu_selesai,
-            'status'         => 'pending',
-            'jumlah_peserta' => $request->jumlah_peserta,
-            'tujuan_rapat'   => $request->tujuan_rapat,
+            'ruangan_id'        => $ruangan_id,
+            'user_id'           => Auth::id(),
+            'tanggal_mulai'     => $request->tanggal_mulai,
+            'waktu_mulai'       => $request->waktu_mulai,
+            'waktu_selesai'     => $request->waktu_selesai,
+            'status'            => 'pending',
+            'status_pembayaran' => $isExternal ? 'unpaid' : 'verified',
+            'jumlah_peserta'    => $request->jumlah_peserta,
+            'tujuan_rapat'      => $request->tujuan_rapat,
         ]);
+
+        if ($isExternal) {
+            \App\Models\Notification::create([
+                'user_id'       => Auth::id(),
+                'peminjaman_id' => $peminjaman->id,
+                'type'          => 'payment_required',
+                'message'       => 'Pemesanan Anda berhasil dibuat! Silakan unggah bukti pembayaran di dashboard agar pemesanan dapat segera diproses.',
+                'is_read'       => false,
+            ]);
+        }
 
         if ($request->has('fasilitas')) {
             foreach ($request->fasilitas as $fasilitas_id => $qty) {
@@ -51,6 +64,12 @@ class BookingController extends Controller
                     ]);
                 }
             }
+        }
+
+        if ($isExternal) {
+            return redirect('/user/dashboard')
+                ->with('booking_success', true)
+                ->with('message', 'Silakan unggah bukti pembayaran untuk melanjutkan proses pemesanan.');
         }
 
         return redirect("/room/{$ruangan_id}")

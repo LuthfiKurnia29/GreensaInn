@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Ruangan;
+use App\Models\Peminjaman;
 use App\Models\Notification;
 
 class DashboardController extends Controller
@@ -37,6 +38,9 @@ class DashboardController extends Controller
 
         $peminjaman = \App\Models\Peminjaman::with(['ruangan'])->findOrFail($id);
         $peminjaman->status = $request->status;
+        if ($request->status === 'approved' && $peminjaman->status_pembayaran === 'pending_verification') {
+            $peminjaman->status_pembayaran = 'verified';
+        }
         $peminjaman->save();
 
         // Buat notifikasi untuk user yang memesan

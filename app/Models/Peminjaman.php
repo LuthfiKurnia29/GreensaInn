@@ -3,21 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Ruangan;
 
 class Peminjaman extends Model
 {
     protected $table = 'peminjaman';
-
-    protected $fillable = [
-        'ruangan_id',
-        'user_id',
-        'tanggal_mulai',
-        'waktu_mulai',
-        'waktu_selesai',
-        'status',
-        'jumlah_peserta',
-        'tujuan_rapat',
-    ];
+    protected $guarded = ['id'];
 
     public function ruangan()
     {
