@@ -54,6 +54,18 @@ class DummyUserSeeder extends Seeder
             ]
         );
 
+        User::updateOrCreate(
+            ['email' => 'peminjam.internal2@greensainn.com'],
+            [
+                'nama_lengkap' => 'Pak Dosen',
+                'username' => 'peminjam_internal2',
+                'nomor_telepon' => '086172819991',
+                'role' => 'peminjam',
+                'instansi' => 'internal',
+                'password' => Hash::make('password123')
+            ]
+        );
+
         // Peminjam - Umum
         User::updateOrCreate(
             ['email' => 'peminjam.umum@greensainn.com'],
