@@ -228,6 +228,171 @@
         .delay-1 { animation-delay: 0.1s; }
         .delay-2 { animation-delay: 0.2s; }
         .delay-3 { animation-delay: 0.3s; }
+
+        /* ========== Notification Bell ========== */
+        .notif-bell-btn {
+            position: relative;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: var(--primary-light);
+            border: 1px solid rgba(15, 76, 92, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            color: var(--primary-color);
+            font-size: 1.05rem;
+        }
+
+        .notif-bell-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(15, 76, 92, 0.25);
+        }
+
+        .notif-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            line-height: 1;
+        }
+
+        @keyframes bellRing {
+            0%   { transform: rotate(0deg); }
+            10%  { transform: rotate(15deg); }
+            20%  { transform: rotate(-12deg); }
+            30%  { transform: rotate(10deg); }
+            40%  { transform: rotate(-8deg); }
+            50%  { transform: rotate(5deg); }
+            60%  { transform: rotate(-3deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        .bell-ring {
+            animation: bellRing 0.8s ease-in-out;
+        }
+
+        /* Notification Dropdown */
+        .notif-dropdown {
+            width: 360px;
+            max-height: 480px;
+            border-radius: 16px !important;
+            border: 0 !important;
+            box-shadow: 0 20px 60px rgba(15, 76, 92, 0.15) !important;
+            overflow: hidden;
+            padding: 0 !important;
+        }
+
+        .notif-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1a6f85 100%);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .notif-list {
+            max-height: 360px;
+            overflow-y: auto;
+        }
+
+        .notif-list::-webkit-scrollbar { width: 4px; }
+        .notif-list::-webkit-scrollbar-track { background: #f1f5f9; }
+        .notif-list::-webkit-scrollbar-thumb { background: rgba(15, 76, 92, 0.3); border-radius: 4px; }
+
+        .notif-item {
+            padding: 14px 20px;
+            border-bottom: 1px solid rgba(15, 76, 92, 0.05);
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            transition: background 0.2s ease;
+            cursor: pointer;
+        }
+
+        .notif-item:hover { background: #f8fafc; }
+        .notif-item.unread { background: rgba(15, 76, 92, 0.03); }
+        .notif-item:last-child { border-bottom: none; }
+
+        .notif-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .notif-icon.approved {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .notif-icon.rejected {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .notif-text .notif-msg {
+            font-size: 0.82rem;
+            color: #374151;
+            line-height: 1.45;
+            margin: 0 0 4px;
+        }
+
+        .notif-text .notif-time {
+            font-size: 0.73rem;
+            color: #9ca3af;
+        }
+
+        .notif-dot {
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 5px;
+        }
+
+        .notif-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+        }
+
+        .notif-footer {
+            padding: 12px 20px;
+            background: #f8fafc;
+            border-top: 1px solid rgba(15, 76, 92, 0.06);
+            text-align: center;
+        }
+
+        .notif-footer a {
+            font-size: 0.82rem;
+            color: var(--primary-color);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .notif-footer a:hover { text-decoration: underline; }
+
     </style>
     @yield('styles')
 </head>
@@ -259,6 +424,38 @@
                 </ul>
                 <div class="d-flex align-items-center gap-3">
                     @auth
+                        <!-- Notification Bell -->
+                        <div class="dropdown" id="notifDropdownWrapper">
+                            <button class="notif-bell-btn" type="button" id="notifBellBtn" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" title="Notifikasi">
+                                <i class="fa-solid fa-bell" id="bellIcon"></i>
+                                <span class="notif-badge d-none" id="notifBadge">0</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end notif-dropdown mt-2" id="notifDropdown">
+                                <!-- Header -->
+                                <li>
+                                    <div class="notif-header">
+                                        <span class="fw-bold" style="font-size:0.95rem;"><i class="fa-solid fa-bell me-2"></i>Notifikasi</span>
+                                        <button id="markAllReadBtn" onclick="markAllRead()" class="btn btn-sm" style="font-size:0.75rem; color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.15); border-radius:8px; padding:4px 10px; border:none;">Tandai dibaca</button>
+                                    </div>
+                                </li>
+                                <!-- Notification List -->
+                                <li>
+                                    <div class="notif-list" id="notifList">
+                                        <div class="notif-empty">
+                                            <i class="fa-regular fa-bell-slash fa-2x mb-3 d-block"></i>
+                                            <p class="mb-0" style="font-size:0.85rem;">Belum ada notifikasi</p>
+                                        </div>
+                                    </div>
+                                </li>
+                                <!-- Footer -->
+                                <li>
+                                    <div class="notif-footer">
+                                        <a href="{{ route('booking.index') }}"><i class="fa-solid fa-arrow-right me-1"></i>Pesan Ruangan Lagi</a>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
                         <div class="dropdown">
                             <button class="btn btn-outline-primary dropdown-toggle px-4 d-none d-lg-inline-block" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 Halo, {{ explode(' ', Auth::user()->nama_lengkap ?? 'Pengguna')[0] }}
@@ -369,6 +566,112 @@
             }
         });
     </script>
+
+    @auth
+    <!-- Notification Polling Script -->
+    <script>
+        const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        let lastUnreadCount = 0;
+
+        function fetchNotifications() {
+            fetch('/api/user/notifications', {
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN }
+            })
+            .then(res => res.json())
+            .then(data => {
+                renderNotifications(data.notifications, data.unread_count);
+            })
+            .catch(err => console.warn('Notif fetch error:', err));
+        }
+
+        function renderNotifications(notifications, unreadCount) {
+            const badge  = document.getElementById('notifBadge');
+            const list   = document.getElementById('notifList');
+            const bellEl = document.getElementById('bellIcon');
+
+            // Update badge
+            if (unreadCount > 0) {
+                badge.classList.remove('d-none');
+                badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+
+                // Ring bell if new notifications appeared
+                if (unreadCount > lastUnreadCount) {
+                    bellEl.classList.remove('bell-ring');
+                    void bellEl.offsetWidth; // reflow trick to restart animation
+                    bellEl.classList.add('bell-ring');
+                    setTimeout(() => bellEl.classList.remove('bell-ring'), 1000);
+                }
+            } else {
+                badge.classList.add('d-none');
+            }
+            lastUnreadCount = unreadCount;
+
+            // Render list
+            if (notifications.length === 0) {
+                list.innerHTML = `
+                    <div class="notif-empty">
+                        <i class="fa-regular fa-bell-slash fa-2x mb-3 d-block"></i>
+                        <p class="mb-0" style="font-size:0.85rem;">Belum ada notifikasi</p>
+                    </div>`;
+                return;
+            }
+
+            list.innerHTML = notifications.map(notif => `
+                <div class="notif-item ${notif.is_read ? '' : 'unread'}" onclick="markRead(${notif.id}, this)">
+                    <div class="notif-icon ${notif.type}">
+                        ${notif.type === 'approved'
+                            ? '<i class="fa-solid fa-circle-check"></i>'
+                            : '<i class="fa-solid fa-circle-xmark"></i>'}
+                    </div>
+                    <div class="notif-text flex-grow-1">
+                        <p class="notif-msg">${notif.message}</p>
+                        <span class="notif-time"><i class="fa-regular fa-clock me-1"></i>${notif.created_at}</span>
+                    </div>
+                    ${!notif.is_read ? '<div class="notif-dot"></div>' : ''}
+                </div>
+            `).join('');
+        }
+
+        function markRead(id, el) {
+            fetch(`/api/user/notifications/${id}/read`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN }
+            })
+            .then(() => {
+                // Remove unread styling + dot
+                el.classList.remove('unread');
+                const dot = el.querySelector('.notif-dot');
+                if (dot) dot.remove();
+
+                // Decrease badge count
+                const badge = document.getElementById('notifBadge');
+                let count = parseInt(badge.textContent) || 0;
+                count = Math.max(0, count - 1);
+                if (count === 0) {
+                    badge.classList.add('d-none');
+                } else {
+                    badge.textContent = count > 9 ? '9+' : count;
+                }
+                lastUnreadCount = count;
+            })
+            .catch(err => console.warn('Mark read error:', err));
+        }
+
+        function markAllRead() {
+            fetch('/api/user/notifications/read-all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN }
+            })
+            .then(() => fetchNotifications())
+            .catch(err => console.warn('Mark all read error:', err));
+        }
+
+        // Initial fetch + polling every 30 seconds
+        fetchNotifications();
+        setInterval(fetchNotifications, 30000);
+    </script>
+    @endauth
+
     @yield('scripts')
 </body>
 </html>
