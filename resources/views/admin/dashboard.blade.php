@@ -111,7 +111,7 @@
                         <th>Ruangan</th>
                         <th>Tanggal & Jam</th>
                         <th>Agenda/Keperluan</th>
-                        <th>Total Bayar</th>
+                        <th>Pembayaran</th>
                         <th>Status</th>
                         <th class="text-center" style="width: 180px;">Aksi</th>
                     </tr>
@@ -144,7 +144,27 @@
                                 </div>
                             @endif
                         </td>
-                        <td class="fw-bold text-primary-custom">-</td>
+                        <td>
+                            @if(isset($booking->user) && $booking->user->instansi === 'umum')
+                                @if($booking->status_pembayaran === 'unpaid')
+                                    <span class="badge bg-danger">Belum Bayar</span>
+                                @elseif($booking->status_pembayaran === 'pending_verification')
+                                    <span class="badge bg-warning text-dark">Perlu Verifikasi</span>
+                                    @if($booking->bukti_pembayaran)
+                                        <a href="{{ asset('storage/' . $booking->bukti_pembayaran) }}" target="_blank" class="btn btn-sm btn-link p-0 mt-1 d-block" style="font-size: 0.8rem;">Lihat Bukti</a>
+                                    @endif
+                                @elseif($booking->status_pembayaran === 'verified')
+                                    <span class="badge bg-success">Lunas</span>
+                                    @if($booking->bukti_pembayaran)
+                                        <a href="{{ asset('storage/' . $booking->bukti_pembayaran) }}" target="_blank" class="btn btn-sm btn-link p-0 mt-1 d-block" style="font-size: 0.8rem;">Lihat Bukti</a>
+                                    @endif
+                                @else
+                                    <span class="badge bg-danger">Belum Bayar</span>
+                                @endif
+                            @else
+                                <span class="badge bg-secondary">Internal</span>
+                            @endif
+                        </td>
                         <td>
                             @if($booking->status === 'approved')
                                 <span class="badge-status success" id="badge-{{ $booking->id }}">Disetujui</span>
@@ -159,7 +179,15 @@
                         <td>
                             <div class="d-flex justify-content-center gap-2" id="action-box-{{ $booking->id }}">
                                 @if($booking->status === 'pending')
-                                    <button class="btn btn-outline-success btn-sm px-2 py-1" onclick="approveBooking('{{ $booking->id }}')" title="Setujui Pemesanan">
+                                    @php
+                                        $canApprove = true;
+                                        if (isset($booking->user) && $booking->user->instansi === 'umum' && $booking->status_pembayaran === 'unpaid') {
+                                            $canApprove = false;
+                                        }
+                                    @endphp
+                                    <button class="btn btn-outline-success btn-sm px-2 py-1 {{ !$canApprove ? 'disabled' : '' }}" 
+                                            onclick="{{ $canApprove ? "approveBooking('{$booking->id}')" : 'alert(\'Pengguna umum harus mengunggah bukti pembayaran terlebih dahulu sebelum pesanan dapat disetujui.\')' }}" 
+                                            title="Setujui Pemesanan">
                                         <i class="fa-solid fa-check me-1"></i> Setujui
                                     </button>
                                     <button class="btn btn-outline-danger btn-sm px-2 py-1" onclick="rejectBooking('{{ $booking->id }}')" title="Tolak Pemesanan">

@@ -298,6 +298,11 @@ Route::middleware('auth')->group(function () {
     
     Route::post('/booking/{ruangan_id}', [BookingController::class, 'store'])->name('booking.store');
 
+    // User Dashboard Routes
+    Route::get('/user/dashboard', [\App\Http\Controllers\UserDashboardController::class, 'index'])->name('user.dashboard');
+    Route::post('/user/dashboard/payment/{id}', [\App\Http\Controllers\UserDashboardController::class, 'uploadPayment'])->name('user.dashboard.payment');
+    Route::delete('/user/dashboard/booking/{id}', [\App\Http\Controllers\UserDashboardController::class, 'cancelBooking'])->name('user.dashboard.booking.cancel');
+
     // Notification API Routes
     Route::get('/api/user/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/api/user/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
