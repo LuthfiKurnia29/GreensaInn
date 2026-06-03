@@ -50,11 +50,14 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="h5 m-0"><i class="fa-solid fa-file-shield me-2 text-primary-custom"></i>Daftar Pengajuan Menunggu Evaluasi</h4>
             <div class="d-flex gap-2">
-                <select class="form-select form-select-sm" style="width: 180px;">
+                <select class="form-select form-select-sm" id="typeFilter" style="width: 180px;" onchange="filterTableByApplicant()">
                     <option value="all">Semua Tipe Pemohon</option>
                     <option value="internal">Internal UINSA</option>
                     <option value="external">Eksternal</option>
                 </select>
+                <button class="btn btn-sm d-flex align-items-center gap-2 px-3 py-1.5 rounded-3 shadow-sm border-0 text-white animate-hover" data-bs-toggle="modal" data-bs-target="#reportFilterModal" style="background-color: var(--primary-color);">
+                    <i class="fa-solid fa-file-invoice"></i> Cetak & Ekspor Laporan
+                </button>
             </div>
         </div>
 
@@ -73,7 +76,7 @@
                 </thead>
                 <tbody>
                     @foreach($reviews as $review)
-                    <tr id="review-row-{{ $review->id }}">
+                    <tr id="review-row-{{ $review->id }}" data-applicant-type="{{ $review->user->instansi ?? 'umum' }}">
                         <td class="fw-bold text-dark">REV-{{ str_pad($review->id, 3, '0', STR_PAD_LEFT) }}</td>
                         <td>
                             <div class="fw-bold text-dark">{{ $review->user->nama_lengkap ?? 'Unknown' }}</div>
@@ -100,13 +103,32 @@
                             @endif
                         </td>
                         <td>
+                            @php
+                                $isInternal = ($review->user->instansi ?? 'umum') === 'internal';
+                                $totalHarga = 0;
+                                $dp = 0;
+                                $durasiJam = 0;
+                                
+                                if ($review->waktu_mulai && $review->waktu_selesai) {
+                                    $start = \Carbon\Carbon::parse($review->waktu_mulai);
+                                    $end = \Carbon\Carbon::parse($review->waktu_selesai);
+                                    $durasiJam = max(1, $start->diffInHours($end));
+                                }
+
+                                if (!$isInternal) {
+                                    $mockRooms = getMockRooms();
+                                    $roomPrice = $mockRooms[$review->ruangan_id]['price'] ?? 0;
+                                    $totalHarga = $roomPrice * $durasiJam;
+                                    $dp = $totalHarga * 0.5;
+                                }
+                            @endphp
                             <div class="finance-badge-box">
-                                @if(($review->user->instansi ?? 'umum') === 'internal')
+                                @if($isInternal)
                                     <div class="text-success fw-bold"><i class="fa-solid fa-tags me-1"></i>Bebas Biaya (Rp 0)</div>
                                     <div class="text-muted small mt-0.5">Wajib DP: Rp 0</div>
                                 @else
-                                    <div class="text-dark fw-bold">Total: Rp 0 (Disimulasikan)</div>
-                                    <div class="text-danger small fw-semibold mt-0.5"><i class="fa-solid fa-circle-exclamation me-1"></i>Min. DP: Rp 0</div>
+                                    <div class="text-dark fw-bold">Total: Rp {{ number_format($totalHarga, 0, ',', '.') }}</div>
+                                    <div class="text-danger small fw-semibold mt-0.5"><i class="fa-solid fa-circle-exclamation me-1"></i>Min. DP: Rp {{ number_format($dp, 0, ',', '.') }}</div>
                                 @endif
                             </div>
                         </td>
@@ -173,6 +195,86 @@
     </div>
 </div>
 
+<!-- Modal: Filter & Generate Laporan -->
+<div class="modal fade" id="reportFilterModal" tabindex="-1" aria-labelledby="reportFilterModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom border-light p-4">
+                <h5 class="modal-title fw-bold text-dark" id="reportFilterModalLabel">
+                    <i class="fa-solid fa-print me-2 text-primary-custom"></i>Ekspor & Cetak Laporan Booking
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="reportFilterForm" action="" method="GET">
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-4">
+                        Pilih rentang tanggal, status booking, tipe pemohon, dan format laporan yang ingin dicetak atau diunduh.
+                    </p>
+
+                    <!-- Tanggal Mulai & Tanggal Selesai -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">TANGGAL MULAI</label>
+                            <input type="date" class="form-control" name="start_date" id="reportStartDate">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">TANGGAL SELESAI</label>
+                            <input type="date" class="form-control" name="end_date" id="reportEndDate">
+                        </div>
+                    </div>
+
+                    <!-- Status Booking -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">STATUS BOOKING</label>
+                        <select class="form-select" name="status" id="reportStatus">
+                            <option value="all">Semua Status (Pending, Approved, Rejected, Completed)</option>
+                            <option value="pending">Pending (Menunggu)</option>
+                            <option value="approved">Approved (Disetujui)</option>
+                            <option value="rejected">Rejected (Ditolak)</option>
+                            <option value="completed">Completed (Selesai)</option>
+                        </select>
+                    </div>
+
+                    <!-- Tipe Pemohon -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">TIPE PEMOHON</label>
+                        <select class="form-select" name="applicant_type" id="reportApplicantType">
+                            <option value="all">Semua Tipe Pemohon</option>
+                            <option value="internal">Internal UINSA (Bebas Biaya)</option>
+                            <option value="external">Eksternal (Berbayar)</option>
+                        </select>
+                    </div>
+
+                    <!-- Format Laporan -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted d-block mb-2">FORMAT LAPORAN</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="format" id="formatPrint" value="print" checked>
+                                <label class="form-check-label fw-semibold text-dark small" for="formatPrint">
+                                    <i class="fa-solid fa-file-pdf text-danger me-1"></i> Cetak PDF / Kertas
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="format" id="formatCsv" value="csv">
+                                <label class="form-check-label fw-semibold text-dark small" for="formatCsv">
+                                    <i class="fa-solid fa-file-csv text-success me-1"></i> Unduh Excel / CSV
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-light p-3 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-light px-4 py-2.5 rounded-3 fw-semibold text-muted border" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" onclick="submitReportForm()" class="btn px-4 py-2.5 rounded-3 fw-semibold shadow-sm border-0 text-white" style="background-color: var(--primary-color);">
+                        <i class="fa-solid fa-circle-check me-1"></i> Generate
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Container for Notifications -->
 <div class="toast-container">
     <div id="liveToast" class="toast align-items-center text-white bg-success border-0 rounded-3 shadow" role="alert" aria-live="assertive" aria-atomic="true">
@@ -195,6 +297,43 @@
     document.addEventListener("DOMContentLoaded", () => {
         verificationModal = new bootstrap.Modal(document.getElementById('paymentVerificationModal'));
     });
+
+    function filterTableByApplicant() {
+        const val = document.getElementById('typeFilter').value;
+        const rows = document.querySelectorAll('tbody tr[id^="review-row-"]');
+        rows.forEach(row => {
+            const type = row.getAttribute('data-applicant-type');
+            if (val === 'all') {
+                row.style.display = '';
+            } else if (val === 'internal') {
+                row.style.display = (type === 'internal') ? '' : 'none';
+            } else if (val === 'external') {
+                row.style.display = (type !== 'internal') ? '' : 'none';
+            }
+        });
+    }
+
+    function submitReportForm() {
+        const form = document.getElementById('reportFilterForm');
+        const formatPrint = document.getElementById('formatPrint').checked;
+        
+        if (formatPrint) {
+            form.action = "{{ route('admin.reports.print') }}";
+            form.target = "_blank";
+        } else {
+            form.action = "{{ route('admin.reports.index') }}";
+            form.target = "_self";
+        }
+        
+        form.submit();
+        
+        // Hide modal
+        const modalEl = document.getElementById('reportFilterModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) {
+            modal.hide();
+        }
+    }
 
     // Approve internal booking (Rp 0 cost UINSA)
     function approveInternal(id) {
