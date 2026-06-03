@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Ruangan;
+use App\Models\Notification;
 
 class DashboardController extends Controller
 {
@@ -34,9 +35,27 @@ class DashboardController extends Controller
             'status' => 'required|in:approved,rejected'
         ]);
 
-        $peminjaman = \App\Models\Peminjaman::findOrFail($id);
+        $peminjaman = \App\Models\Peminjaman::with(['ruangan'])->findOrFail($id);
         $peminjaman->status = $request->status;
         $peminjaman->save();
+
+        // Buat notifikasi untuk user yang memesan
+        $namaRuangan = $peminjaman->ruangan->nama_ruangan ?? 'Ruangan';
+        $tanggal = \Carbon\Carbon::parse($peminjaman->tanggal_mulai)->translatedFormat('d M Y');
+
+        if ($request->status === 'approved') {
+            $message = "Pemesanan Anda untuk \"{$namaRuangan}\" pada {$tanggal} telah Disetujui! Silakan hadir tepat waktu.";
+        } else {
+            $message = "Pemesanan Anda untuk \"{$namaRuangan}\" pada {$tanggal} Ditolak oleh admin. Silakan hubungi kami untuk informasi lebih lanjut.";
+        }
+
+        Notification::create([
+            'user_id'       => $peminjaman->user_id,
+            'peminjaman_id' => $peminjaman->id,
+            'type'          => $request->status,
+            'message'       => $message,
+            'is_read'       => false,
+        ]);
 
         return response()->json([
             'success' => true,

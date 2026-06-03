@@ -5,6 +5,7 @@ use App\Http\Controllers\FasilitasController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 
 // Data Dummy Ruang Rapat
 function getMockRooms() {
@@ -296,4 +297,9 @@ Route::middleware('auth')->group(function () {
     })->name('booking.index');
     
     Route::post('/booking/{ruangan_id}', [BookingController::class, 'store'])->name('booking.store');
+
+    // Notification API Routes
+    Route::get('/api/user/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/api/user/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('/api/user/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
 });

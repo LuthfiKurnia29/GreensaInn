@@ -186,7 +186,7 @@
 </section>
 
 <!-- Quick Booking Search Panel -->
-<section class="container mb-5">
+<!-- <section class="container mb-5">
     <div class="row justify-content-center">
         <div class="col-xl-10">
             <div class="search-panel animate-fade-in delay-2">
@@ -224,7 +224,7 @@
             </div>
         </div>
     </div>
-</section>
+</section> -->
 
 <!-- Core Benefits Section -->
 <section id="facilities" class="py-5">
