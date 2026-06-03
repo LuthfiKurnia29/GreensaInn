@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ReportController;
 
 // Data Dummy Ruang Rapat
 function getMockRooms() {
@@ -269,6 +270,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
             ->get();
         return view('admin.booking-reviews', compact('reviews'));
     });
+
+    Route::get('/admin/reports', [ReportController::class, 'index'])->name('admin.reports.index');
+    Route::get('/admin/reports/print', [ReportController::class, 'print'])->name('admin.reports.print');
 
     Route::get('/admin/fasilitas', [FasilitasController::class, 'index'])->name('admin.fasilitas.index');
     Route::get('/admin/fasilitas/create', [FasilitasController::class, 'create'])->name('admin.fasilitas.create');
