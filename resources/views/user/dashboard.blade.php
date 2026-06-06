@@ -63,7 +63,9 @@
                         </div>
                         
                         <div class="col-md-3 mb-3 mb-md-0">
-                            <p class="mb-1"><small class="text-muted">Status Booking:</small></p>
+                            <p class="mb-1"><small class="text-muted">Total Tagihan:</small></p>
+                            <h6 class="mb-2 text-primary-custom fw-bold">Rp {{ number_format($booking->total_harga ?? 0, 0, ',', '.') }}</h6>
+                            <p class="mb-1 mt-2"><small class="text-muted">Status Booking:</small></p>
                             <span class="status-badge status-{{ $booking->status }}">
                                 {{ ucfirst($booking->status) }}
                             </span>
@@ -91,9 +93,15 @@
                         <div class="col-md-3 text-md-end d-flex flex-column gap-2 align-items-md-end mt-3 mt-md-0">
                             @if(Auth::user()->instansi === 'umum')
                                 @if($booking->status_pembayaran === 'unpaid' || $booking->status_pembayaran === 'pending_verification')
-                                    <button type="button" class="btn btn-outline-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#paymentModal{{ $booking->id }}">
-                                        <i class="fa-solid fa-upload me-1"></i> Unggah Bukti
-                                    </button>
+                                    @if($booking->snap_token)
+                                        <button type="button" class="btn btn-primary btn-sm w-100" onclick="payNow('{{ $booking->snap_token }}')">
+                                            <i class="fa-solid fa-credit-card me-1"></i> Bayar Sekarang
+                                        </button>
+                                    @else
+                                        <button type="button" class="btn btn-outline-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#paymentModal{{ $booking->id }}">
+                                            <i class="fa-solid fa-upload me-1"></i> Unggah Bukti
+                                        </button>
+                                    @endif
                                 @elseif($booking->bukti_pembayaran)
                                     <a href="{{ asset('storage/' . $booking->bukti_pembayaran) }}" target="_blank" class="btn btn-outline-success btn-sm w-100">
                                         <i class="fa-solid fa-eye me-1"></i> Lihat Bukti
@@ -181,4 +189,32 @@
         @endempty
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script type="text/javascript" src="{{ config('midtrans.is_production') ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' }}" data-client-key="{{ config('midtrans.client_key') }}"></script>
+<script>
+    function payNow(token) {
+        if (!token) {
+            alert('Token tidak tersedia. Silakan hubungi admin.');
+            return;
+        }
+        window.snap.pay(token, {
+            onSuccess: function(result){
+                alert("Pembayaran berhasil! Silakan tunggu verifikasi admin.");
+                window.location.reload();
+            },
+            onPending: function(result){
+                alert("Menunggu pembayaran Anda!");
+                window.location.reload();
+            },
+            onError: function(result){
+                alert("Pembayaran gagal!");
+            },
+            onClose: function(){
+                // Popup tertutup
+            }
+        });
+    }
+</script>
 @endsection

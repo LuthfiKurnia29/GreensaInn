@@ -1,7 +1,5 @@
 @extends('layouts.app')
-
 @section('title', 'GreensaInn - Peminjaman Ruang Rapat Premium & Kolaboratif')
-
 @section('styles')
 <style>
     /* Hero Section */

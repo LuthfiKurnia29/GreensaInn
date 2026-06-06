@@ -174,6 +174,8 @@ function getMockRooms() {
     ];
 }
 
+Route::post('/api/payment/midtrans-callback', [\App\Http\Controllers\PaymentCallbackController::class, 'callback'])->name('api.payment.midtrans-callback');
+
 Route::get('/', function () {
     $rooms = getMockRooms();
     return view('landing', compact('rooms'));

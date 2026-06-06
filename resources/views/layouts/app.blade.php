@@ -350,6 +350,16 @@
             color: #dc2626;
         }
 
+        .notif-icon.payment_required {
+            background: #fff7ed;
+            color: #ea580c;
+        }
+
+        .notif-icon.payment_success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
         .notif-text .notif-msg {
             font-size: 0.82rem;
             color: #374151;
@@ -620,20 +630,25 @@
                 return;
             }
 
-            list.innerHTML = notifications.map(notif => `
+            list.innerHTML = notifications.map(notif => {
+                let icon = '<i class="fa-solid fa-circle-xmark"></i>';
+                if (notif.type === 'approved' || notif.type === 'payment_success') {
+                    icon = '<i class="fa-solid fa-circle-check"></i>';
+                } else if (notif.type === 'payment_required') {
+                    icon = '<i class="fa-solid fa-credit-card"></i>';
+                }
+                return `
                 <div class="notif-item ${notif.is_read ? '' : 'unread'}" onclick="markRead(${notif.id}, this)">
                     <div class="notif-icon ${notif.type}">
-                        ${notif.type === 'approved'
-                            ? '<i class="fa-solid fa-circle-check"></i>'
-                            : '<i class="fa-solid fa-circle-xmark"></i>'}
+                        ${icon}
                     </div>
                     <div class="notif-text flex-grow-1">
                         <p class="notif-msg">${notif.message}</p>
                         <span class="notif-time"><i class="fa-regular fa-clock me-1"></i>${notif.created_at}</span>
                     </div>
                     ${!notif.is_read ? '<div class="notif-dot"></div>' : ''}
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
         function markRead(id, el) {
