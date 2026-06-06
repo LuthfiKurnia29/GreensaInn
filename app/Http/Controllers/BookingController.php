@@ -32,6 +32,31 @@ class BookingController extends Controller
 
         $isExternal = Auth::user()->instansi === 'umum';
 
+        // Calculate Price
+        $total_harga = null;
+        $snap_token = null;
+        
+        if ($isExternal) {
+            // Get mock room price since the real db doesn't have it for now
+            $rooms = getMockRooms();
+            $roomPricePerHour = $rooms[$ruangan_id]['price'] ?? 0;
+            
+            $start = \Carbon\Carbon::parse($request->waktu_mulai);
+            $end = \Carbon\Carbon::parse($request->waktu_selesai);
+            
+            // If end time is before start time (e.g. next day), add a day.
+            if ($end->lessThan($start)) {
+                $end->addDay();
+            }
+            
+            $durationHours = $start->diffInHours($end);
+            if ($durationHours == 0) $durationHours = 1; // Minimum 1 hour
+            
+            $rawPrice = $roomPricePerHour * $durationHours;
+            $serviceTax = round($rawPrice * 0.1);
+            $total_harga = $rawPrice + $serviceTax;
+        }
+
         $peminjaman = Peminjaman::create([
             'ruangan_id'        => $ruangan_id,
             'user_id'           => Auth::id(),
@@ -42,14 +67,41 @@ class BookingController extends Controller
             'status_pembayaran' => $isExternal ? 'unpaid' : 'verified',
             'jumlah_peserta'    => $request->jumlah_peserta,
             'tujuan_rapat'      => $request->tujuan_rapat,
+            'total_harga'       => $total_harga,
         ]);
 
-        if ($isExternal) {
+        if ($isExternal && $total_harga > 0) {
+            // Midtrans Configuration
+            \Midtrans\Config::$serverKey = config('midtrans.server_key');
+            \Midtrans\Config::$isProduction = config('midtrans.is_production');
+            \Midtrans\Config::$isSanitized = config('midtrans.is_sanitized');
+            \Midtrans\Config::$is3ds = config('midtrans.is_3ds');
+
+            $params = [
+                'transaction_details' => [
+                    'order_id' => 'BOOK-' . $peminjaman->id . '-' . time(),
+                    'gross_amount' => $total_harga,
+                ],
+                'customer_details' => [
+                    'first_name' => Auth::user()->nama_lengkap,
+                    'email' => Auth::user()->email,
+                    'phone' => Auth::user()->nomor_telepon,
+                ],
+            ];
+
+            try {
+                $snap_token = \Midtrans\Snap::getSnapToken($params);
+                $peminjaman->update(['snap_token' => $snap_token]);
+            } catch (\Exception $e) {
+                // Log the error or handle it, for now we will proceed without token, user can retry or it stays unpaid.
+                \Illuminate\Support\Facades\Log::error('Midtrans Error: ' . $e->getMessage());
+            }
+
             \App\Models\Notification::create([
                 'user_id'       => Auth::id(),
                 'peminjaman_id' => $peminjaman->id,
                 'type'          => 'payment_required',
-                'message'       => 'Pemesanan Anda berhasil dibuat! Silakan unggah bukti pembayaran di dashboard agar pemesanan dapat segera diproses.',
+                'message'       => 'Pemesanan Anda berhasil dibuat! Silakan lakukan pembayaran di dashboard agar pemesanan dapat segera diproses.',
                 'is_read'       => false,
             ]);
         }
@@ -69,7 +121,7 @@ class BookingController extends Controller
         if ($isExternal) {
             return redirect('/user/dashboard')
                 ->with('booking_success', true)
-                ->with('message', 'Silakan unggah bukti pembayaran untuk melanjutkan proses pemesanan.');
+                ->with('message', 'Silakan selesaikan pembayaran untuk melanjutkan proses pemesanan.');
         }
 
         return redirect("/room/{$ruangan_id}")

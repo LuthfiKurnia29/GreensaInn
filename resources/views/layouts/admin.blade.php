@@ -254,7 +254,7 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="adminSidebar">
         <a href="{{ url('/admin') }}" class="sidebar-brand">
-            <i class="fa-solid fa-hotel me-2"></i>Greensa<span>Inn</span> Admin
+            <img src="{{ asset('assets/images/logoGreenSa.jpeg') }}" alt="Logo" style="width: 200px; height: 120px;" />
         </a>
         <ul class="sidebar-menu">
             <li class="sidebar-item">
