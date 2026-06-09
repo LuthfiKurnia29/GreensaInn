@@ -12,7 +12,7 @@ class DashboardController extends Controller
     public function index()
     {
         $rooms = \App\Models\Ruangan::All();
-        $bookings = \App\Models\Peminjaman::with(['user', 'ruangan', 'detailFasilitas.fasilitas'])->latest()->get();
+        $bookings = \App\Models\Peminjaman::with(['user', 'ruangan', 'detailFasilitas.fasilitas', 'pembayaran', 'paket'])->latest()->get();
 
         // Stats
         $stats = [
@@ -36,10 +36,11 @@ class DashboardController extends Controller
             'status' => 'required|in:approved,rejected'
         ]);
 
-        $peminjaman = \App\Models\Peminjaman::with(['ruangan'])->findOrFail($id);
+        $peminjaman = \App\Models\Peminjaman::with(['ruangan', 'pembayaran'])->findOrFail($id);
         $peminjaman->status = $request->status;
-        if ($request->status === 'approved' && $peminjaman->status_pembayaran === 'pending_verification') {
-            $peminjaman->status_pembayaran = 'verified';
+        if ($request->status === 'approved' && $peminjaman->pembayaran && $peminjaman->pembayaran->status_pembayaran === 'pending_verification') {
+            $peminjaman->pembayaran->status_pembayaran = 'verified';
+            $peminjaman->pembayaran->save();
         }
         $peminjaman->save();
 

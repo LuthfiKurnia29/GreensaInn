@@ -370,13 +370,13 @@
     <!-- Kop Surat (Letterhead) -->
     <div class="kop-surat">
         <div class="kop-logo">
-            Greensa<span>Inn</span>
+            <img src="{{ asset('assets/images/logoGreenSa.jpeg') }}" alt="Logo" style="width: 150px; height: 100px;" />
         </div>
         <div class="kop-info">
-            <h1>GreensaInn Meeting Hub & Coworking Space</h1>
+            <h1>GreensaInn</h1>
             <p><i class="fa-solid fa-location-dot"></i> Universitas Islam Negeri Sunan Ampel (UINSA) Surabaya</p>
             <p><i class="fa-solid fa-envelope"></i> contact@greensainn.com | <i class="fa-solid fa-phone"></i> +62 812-3456-7890</p>
-            <p>Jalan A. Yani No. 117, Jemur Wonosari, Kec. Wonocolo, Kota Surabaya, Jawa Timur 60237</p>
+            <p>Greensa Inn & Training Centre, Jl. Raya Bandara Juanda No.88, Semawalang, Semambung, Kabupaten Sidoarjo, Jawa Timur</p>
         </div>
     </div>
 
@@ -478,8 +478,7 @@
                     }
 
                     if (!$isInternal) {
-                        $mockRooms = getMockRooms();
-                        $roomPrice = $mockRooms[$booking->ruangan_id]['price'] ?? 0;
+                        $roomPrice = $booking->ruangan->harga_per_jam ?? 0;
                         $totalHarga = $roomPrice * $durasiJam;
                     }
                 @endphp

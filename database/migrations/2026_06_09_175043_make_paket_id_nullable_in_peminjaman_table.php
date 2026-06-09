@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('peminjaman', function (Blueprint $table) {
-
+            $table->unsignedBigInteger('paket_id')->nullable()->change();
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('peminjaman', function (Blueprint $table) {
-            $table->dropColumn(['bukti_pembayaran', 'status_pembayaran']);
+            $table->unsignedBigInteger('paket_id')->nullable(false)->change();
         });
     }
 };

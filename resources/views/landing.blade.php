@@ -157,6 +157,109 @@
         margin: 0 auto 20px auto;
         box-shadow: 0 5px 15px rgba(251, 139, 36, 0.3);
     }
+
+    /* Package Section */
+    .paket-card {
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(15, 76, 92, 0.1);
+        background: white;
+        transition: var(--transition-smooth);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .paket-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 16px 40px rgba(15, 76, 92, 0.15);
+    }
+
+    .paket-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #0d5a6e 100%);
+        padding: 28px 24px 22px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .paket-header::after {
+        content: '';
+        position: absolute;
+        bottom: -20px;
+        right: -20px;
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.07);
+        border-radius: 50%;
+    }
+
+    .paket-header .paket-price {
+        font-size: 1.8rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .paket-header .paket-price-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        display: block;
+        margin-top: 4px;
+    }
+
+    .paket-ruangan-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(4px);
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+
+    .paket-body {
+        padding: 22px 24px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .fasilitas-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px 0;
+    }
+
+    .fasilitas-list li {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.875rem;
+        color: #495057;
+        padding: 6px 0;
+        border-bottom: 1px dashed rgba(0,0,0,0.07);
+    }
+
+    .fasilitas-list li:last-child {
+        border-bottom: none;
+    }
+
+    .fasilitas-list li i {
+        color: var(--primary-color);
+        width: 16px;
+        flex-shrink: 0;
+    }
+
+    .paket-empty-state {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 20px;
+        padding: 60px 30px;
+        text-align: center;
+    }
 </style>
 @endsection
 
@@ -298,9 +401,6 @@
                             <div class="col-6">
                                 <span class="room-meta-item"><i class="fa-solid fa-users text-primary-custom"></i>Kapasitas {{ $room['capacity'] }} Pax</span>
                             </div>
-                            <div class="col-6">
-                                <span class="room-meta-item"><i class="fa-solid fa-arrows-left-right text-primary-custom"></i>Luas {{ $room['size'] }}</span>
-                            </div>
                         </div>
                         
                         <a href="{{ url('/room/'.$room['id']) }}" class="btn btn-outline-primary w-100 mt-auto">Lihat Detail Ruang</a>
@@ -309,6 +409,69 @@
             </div>
             @endforeach
         </div>
+    </div>
+</section>
+
+<!-- Packages Section -->
+<section id="paket" class="py-5" style="background: linear-gradient(180deg, #f0f7f9 0%, #ffffff 100%);">
+    <div class="container">
+        <div class="text-center max-w-600 mx-auto mb-5">
+            <span class="badge bg-light text-primary-custom px-3 py-2 fs-6 mb-2">Pilihan Hemat</span>
+            <h2 class="h1">Paket Layanan Kami</h2>
+            <p class="text-muted">Dapatkan penghematan lebih dengan memilih paket bundling ruang rapat beserta fasilitas lengkap yang sudah kami siapkan.</p>
+        </div>
+
+        @if($pakets->isEmpty())
+        <div class="paket-empty-state">
+            <i class="fa-solid fa-box-open fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Belum Ada Paket Tersedia</h5>
+            <p class="text-muted small mb-0">Paket layanan sedang dalam proses penyusunan. Silakan hubungi kami untuk informasi lebih lanjut.</p>
+        </div>
+        @else
+        <div class="row g-4">
+            @foreach($pakets as $paket)
+            <div class="col-lg-4 col-md-6">
+                <div class="paket-card">
+                    <div class="paket-header">
+                        @if($paket->ruangan)
+                        <div class="paket-ruangan-badge">
+                            <i class="fa-solid fa-door-open"></i>
+                            {{ $paket->ruangan->nama_ruangan }}
+                        </div>
+                        @endif
+                        <h4 class="h5 mb-1 fw-bold text-white">{{ $paket->nama_paket }}</h4>
+                        <div class="paket-price">
+                            Rp {{ number_format($paket->harga_paket, 0, ',', '.') }}
+                            <span class="paket-price-label">harga paket</span>
+                        </div>
+                    </div>
+                    <div class="paket-body">
+                        <p class="text-muted small mb-3" style="line-height:1.6;">{{ $paket->deskripsi }}</p>
+
+                        @if($paket->fasilitas->isNotEmpty())
+                        <p class="fw-semibold small mb-2" style="color: var(--primary-color);"><i class="fa-solid fa-circle-check me-1"></i>Fasilitas Termasuk:</p>
+                        <ul class="fasilitas-list">
+                            @foreach($paket->fasilitas as $fas)
+                            <li>
+                                <i class="fa-solid fa-check-circle"></i>
+                                <span>{{ $fas->nama_fasilitas }}</span>
+                                @if($fas->pivot && isset($fas->pivot->kuantitas))
+                                <span class="ms-auto text-muted" style="font-size:0.78rem;">×{{ $fas->pivot->kuantitas }}</span>
+                                @endif
+                            </li>
+                            @endforeach
+                        </ul>
+                        @endif
+
+                        <a href="{{ route('booking.index') }}?paket={{ $paket->id }}" class="btn btn-outline-primary w-100 mt-auto">
+                            <i class="fa-regular fa-calendar-check me-2"></i>Pesan Paket Ini
+                        </a>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+        @endif
     </div>
 </section>
 

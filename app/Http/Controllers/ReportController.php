@@ -52,8 +52,6 @@ class ReportController extends Controller
             // Let's use comma for universal CSV compatibility or standard commas.
             fputcsv($file, $columns, ',');
 
-            $mockRooms = getMockRooms();
-
             foreach ($bookings as $booking) {
                 $isInternal = ($booking->user->instansi ?? 'umum') === 'internal';
                 
@@ -67,8 +65,8 @@ class ReportController extends Controller
                     $durasiJam = max(1, $start->diffInHours($end));
                 }
 
-                if (!$isInternal && isset($mockRooms[$booking->ruangan_id])) {
-                    $roomPrice = $mockRooms[$booking->ruangan_id]['price'] ?? 0;
+                if (!$isInternal && $booking->ruangan) {
+                    $roomPrice = $booking->ruangan->harga_per_jam ?? 0;
                     $totalHarga = $roomPrice * $durasiJam;
                     $dp = $totalHarga * 0.5;
                 }
@@ -115,8 +113,6 @@ class ReportController extends Controller
         $totalInternal = 0;
         $totalExternal = 0;
         
-        $mockRooms = getMockRooms();
-
         foreach ($bookings as $booking) {
             $isInternal = ($booking->user->instansi ?? 'umum') === 'internal';
             if ($isInternal) {
@@ -131,8 +127,11 @@ class ReportController extends Controller
                     $durasiJam = max(1, $start->diffInHours($end));
                 }
                 
-                $roomPrice = $mockRooms[$booking->ruangan_id]['price'] ?? 0;
-                $totalRevenue += ($roomPrice * $durasiJam);
+                $roomPrice = $booking->ruangan->harga_per_jam ?? 0;
+                
+                if (in_array($booking->status, ['approved', 'completed'])) {
+                    $totalRevenue += ($roomPrice * $durasiJam);
+                }
             }
         }
 

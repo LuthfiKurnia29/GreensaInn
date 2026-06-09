@@ -130,7 +130,7 @@
                         <label for="tipe_ruangan" class="form-label fw-bold text-dark small">TIPE RUANGAN <span class="text-danger">*</span></label>
                         <select class="form-select shadow-sm @error('tipe_ruangan') is-invalid @enderror"
                                 id="tipe_ruangan" name="tipe_ruangan" required>
-                            @foreach(['Boardroom','Creative Space','Seminar Hall','Huddle Room','Training Room','Meeting Room'] as $tipe)
+                            @foreach(['Seminar Hall','Training Room','Meeting Room'] as $tipe)
                                 <option value="{{ $tipe }}" {{ old('tipe_ruangan', $ruangan->tipe_ruangan) === $tipe ? 'selected' : '' }}>{{ $tipe }}</option>
                             @endforeach
                         </select>
@@ -164,18 +164,6 @@
                             <div class="text-danger small mt-1"><i class="fa-solid fa-circle-exclamation me-1"></i>{{ $message }}</div>
                         @enderror
                     </div>
-                    <!-- <div class="col-md-4">
-                        <label for="luas_ruangan" class="form-label fw-bold text-dark small">LUAS RUANGAN <span class="text-danger">*</span></label>
-                        <div class="input-group shadow-sm rounded-3">
-                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-ruler-combined text-muted"></i></span>
-                            <input type="text" class="form-control border-start-0 @error('luas_ruangan') is-invalid @enderror"
-                                   id="luas_ruangan" name="luas_ruangan"
-                                   value="{{ old('luas_ruangan', $ruangan->luas_ruangan) }}" required>
-                        </div>
-                        @error('luas_ruangan')
-                            <div class="text-danger small mt-1"><i class="fa-solid fa-circle-exclamation me-1"></i>{{ $message }}</div>
-                        @enderror
-                    </div> -->
 
                     <div class="col-12">
                         <label for="lokasi_ruangan" class="form-label fw-bold text-dark small">LOKASI / LANTAI <span class="text-danger">*</span></label>
@@ -201,39 +189,6 @@
                 </div>
 
                 <hr class="my-4 opacity-10">
-
-                {{-- Foto yang sudah ada --}}
-                <div class="section-divider">
-                    Foto Tersimpan
-                    <span class="badge bg-primary ms-2" style="font-size:0.65rem;background-color:var(--primary-color)!important;">
-                        {{ $ruangan->fotoRuangan->count() }} foto
-                    </span>
-                </div>
-
-                @if($ruangan->fotoRuangan->isNotEmpty())
-                <div class="preview-grid mb-4">
-                    @foreach($ruangan->fotoRuangan as $foto)
-                    <div class="existing-photo">
-                        <img src="{{ asset('storage/' . $foto->file_foto) }}" alt="Foto Ruangan">
-                        <div class="delete-form">
-                            <form action="{{ route('admin.foto-ruangan.destroy', $foto->id) }}" method="POST"
-                                  onsubmit="return confirm('Hapus foto ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="remove-btn" title="Hapus foto ini">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-                @else
-                <div class="text-center py-4 text-muted rounded-3 mb-4" style="background:#f7fbfc;border:1px dashed #c8d8dc;">
-                    <i class="fa-regular fa-image fa-2x mb-2 opacity-50"></i>
-                    <p class="small mb-0">Belum ada foto tersimpan untuk ruangan ini.</p>
-                </div>
-                @endif
 
                 {{-- Upload foto baru --}}
                 <div class="section-divider">Tambah Foto Baru</div>
@@ -307,6 +262,49 @@
     </div>
 </div>
 </form>
+
+{{-- ============================================================ --}}
+{{-- Foto Tersimpan — HARUS di luar form update agar tidak nested --}}
+{{-- ============================================================ --}}
+<div class="row mt-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="card-body p-4">
+                <div class="section-divider">
+                    Foto Tersimpan
+                    <span class="badge bg-primary ms-2" style="font-size:0.65rem;background-color:var(--primary-color)!important;">
+                        {{ $ruangan->fotoRuangan->count() }} foto
+                    </span>
+                </div>
+
+                @if($ruangan->fotoRuangan->isNotEmpty())
+                <div class="preview-grid">
+                    @foreach($ruangan->fotoRuangan as $foto)
+                    <div class="existing-photo">
+                        <img src="{{ asset('storage/' . $foto->file_foto) }}" alt="Foto Ruangan">
+                        <div class="delete-form">
+                            <form action="{{ route('admin.foto-ruangan.destroy', $foto->id) }}" method="POST"
+                                  onsubmit="return confirm('Hapus foto ini?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="remove-btn" title="Hapus foto ini">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                <div class="text-center py-4 text-muted rounded-3" style="background:#f7fbfc;border:1px dashed #c8d8dc;">
+                    <i class="fa-regular fa-image fa-2x mb-2 opacity-50"></i>
+                    <p class="small mb-0">Belum ada foto tersimpan untuk ruangan ini.</p>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
 
 @endsection
 

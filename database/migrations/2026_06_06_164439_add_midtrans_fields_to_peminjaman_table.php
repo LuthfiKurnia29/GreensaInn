@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Payment fields are stored in the pembayarans table, not peminjaman
         Schema::table('peminjaman', function (Blueprint $table) {
-            $table->integer('total_harga')->nullable()->after('tujuan_rapat');
-            $table->string('snap_token')->nullable()->after('status_pembayaran');
+            //
         });
     }
 

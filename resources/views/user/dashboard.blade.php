@@ -60,11 +60,14 @@
                             <h5 class="font-heading text-primary-custom mb-1">{{ $booking->ruangan->nama_ruangan ?? 'Ruangan ' . $booking->ruangan_id }}</h5>
                             <p class="text-muted small mb-2"><i class="fa-regular fa-calendar me-2"></i>{{ \Carbon\Carbon::parse($booking->tanggal_mulai)->translatedFormat('d F Y') }}</p>
                             <p class="text-muted small mb-0"><i class="fa-regular fa-clock me-2"></i>{{ substr($booking->waktu_mulai, 0, 5) }} - {{ substr($booking->waktu_selesai, 0, 5) }}</p>
+                            @if($booking->paket_id && $booking->paket)
+                                <p class="text-muted small mb-0 mt-1"><i class="fa-solid fa-box-open me-2"></i>Paket: {{ $booking->paket->nama_paket }}</p>
+                            @endif
                         </div>
                         
                         <div class="col-md-3 mb-3 mb-md-0">
                             <p class="mb-1"><small class="text-muted">Total Tagihan:</small></p>
-                            <h6 class="mb-2 text-primary-custom fw-bold">Rp {{ number_format($booking->total_harga ?? 0, 0, ',', '.') }}</h6>
+                            <h6 class="mb-2 text-primary-custom fw-bold">Rp {{ number_format($booking->pembayaran->total_harga ?? 0, 0, ',', '.') }}</h6>
                             <p class="mb-1 mt-2"><small class="text-muted">Status Booking:</small></p>
                             <span class="status-badge status-{{ $booking->status }}">
                                 {{ ucfirst($booking->status) }}
@@ -77,10 +80,11 @@
                             @php
                                 $payStatusClass = 'unpaid';
                                 $payStatusText = 'Belum Dibayar';
-                                if($booking->status_pembayaran === 'pending_verification') {
+                                $paymentStatus = $booking->pembayaran ? $booking->pembayaran->status_pembayaran : 'unpaid';
+                                if($paymentStatus === 'pending_verification') {
                                     $payStatusClass = 'pending';
                                     $payStatusText = 'Menunggu Verifikasi';
-                                } elseif($booking->status_pembayaran === 'verified') {
+                                } elseif($paymentStatus === 'verified') {
                                     $payStatusClass = 'verified';
                                     $payStatusText = 'Lunas (Terverifikasi)';
                                 }
@@ -91,28 +95,31 @@
                         </div>
 
                         <div class="col-md-3 text-md-end d-flex flex-column gap-2 align-items-md-end mt-3 mt-md-0">
-                            @if(Auth::user()->instansi === 'umum')
-                                @if($booking->status_pembayaran === 'unpaid' || $booking->status_pembayaran === 'pending_verification')
-                                    @if($booking->snap_token)
-                                        <button type="button" class="btn btn-primary btn-sm w-100" onclick="payNow('{{ $booking->snap_token }}')">
-                                            <i class="fa-solid fa-credit-card me-1"></i> Bayar Sekarang
-                                        </button>
-                                    @else
-                                        <button type="button" class="btn btn-outline-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#paymentModal{{ $booking->id }}">
-                                            <i class="fa-solid fa-upload me-1"></i> Unggah Bukti
-                                        </button>
-                                    @endif
-                                @elseif($booking->bukti_pembayaran)
-                                    <a href="{{ asset('storage/' . $booking->bukti_pembayaran) }}" target="_blank" class="btn btn-outline-success btn-sm w-100">
-                                        <i class="fa-solid fa-eye me-1"></i> Lihat Bukti
-                                    </a>
-                                @endif
-                            @endif
+                            @php
+                                $isUmum = Auth::user()->instansi === 'umum';
+                                $paymentStatus = $booking->pembayaran ? $booking->pembayaran->status_pembayaran : ($isUmum ? 'unpaid' : 'verified');
+                            @endphp
 
-                            @if($booking->status === 'pending')
-                                <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-2" data-bs-toggle="modal" data-bs-target="#cancelModal{{ $booking->id }}">
-                                    <i class="fa-solid fa-xmark me-1"></i> Batalkan
+                            @if($isUmum && $paymentStatus === 'unpaid')
+                                <button type="button" class="btn btn-primary btn-sm w-100" onclick="payNow('{{ $booking->pembayaran->snap_token ?? '' }}', {{ $booking->id }})">
+                                    <i class="fa-solid fa-credit-card me-1"></i> Bayar Sekarang
                                 </button>
+                                
+                                @if($booking->status === 'pending')
+                                    <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-2" data-bs-toggle="modal" data-bs-target="#cancelModal{{ $booking->id }}">
+                                        <i class="fa-solid fa-xmark me-1"></i> Batalkan
+                                    </button>
+                                @endif
+                            @else
+                                <button type="button" class="btn btn-outline-info btn-sm w-100" data-bs-toggle="modal" data-bs-target="#detailModal{{ $booking->id }}">
+                                    <i class="fa-solid fa-circle-info me-1"></i> Detail
+                                </button>
+
+                                @if(!$isUmum && $booking->status === 'pending')
+                                    <button type="button" class="btn btn-outline-danger btn-sm w-100 mt-2" data-bs-toggle="modal" data-bs-target="#cancelModal{{ $booking->id }}">
+                                        <i class="fa-solid fa-xmark me-1"></i> Batalkan
+                                    </button>
+                                @endif
                             @endif
                         </div>
                         @endif
@@ -120,40 +127,61 @@
                 </div>
             </div>
 
-            <!-- Upload Payment Modal -->
-            @if(Auth::user()->instansi === 'umum' && in_array($booking->status_pembayaran, ['unpaid', 'pending_verification']))
-            <div class="modal fade" id="paymentModal{{ $booking->id }}" tabindex="-1" aria-labelledby="paymentModalLabel{{ $booking->id }}" aria-hidden="true">
+            <!-- Detail Booking Modal -->
+            <div class="modal fade" id="detailModal{{ $booking->id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ $booking->id }}" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content" style="border-radius: 16px; border: none;">
-                        <form action="{{ route('user.dashboard.payment', $booking->id) }}" method="POST" enctype="multipart/form-data">
-                            @csrf
-                            <div class="modal-header border-0 pb-0">
-                                <h5 class="modal-title font-heading" id="paymentModalLabel{{ $booking->id }}">Unggah Bukti Pembayaran</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p class="small text-muted mb-4">Silakan unggah bukti transfer/pembayaran Anda (maksimal 2MB, format JPG/PNG) untuk pesanan <strong>{{ $booking->ruangan->nama_ruangan ?? 'Ruangan' }}</strong> pada <strong>{{ \Carbon\Carbon::parse($booking->tanggal_mulai)->translatedFormat('d M Y') }}</strong>.</p>
-                                
-                                <div class="mb-3">
-                                    <label for="bukti_pembayaran_{{ $booking->id }}" class="form-label fw-bold small">Pilih File Bukti Pembayaran <span class="text-danger">*</span></label>
-                                    <input class="form-control" type="file" id="bukti_pembayaran_{{ $booking->id }}" name="bukti_pembayaran" accept="image/jpeg,image/png,image/jpg" required>
-                                </div>
-                                
-                                @if($booking->bukti_pembayaran)
-                                    <div class="alert alert-info py-2 small mb-0">
-                                        <i class="fa-solid fa-circle-info me-1"></i> Anda sudah mengunggah bukti sebelumnya. Mengunggah file baru akan menggantikan file lama.
-                                    </div>
+                        <div class="modal-header border-0 pb-0">
+                            <h5 class="modal-title font-heading" id="detailModalLabel{{ $booking->id }}">Detail Pemesanan</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <ul class="list-group list-group-flush mb-3">
+                                <li class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted">Ruangan</span>
+                                    <span class="fw-bold">{{ $booking->ruangan->nama_ruangan ?? 'Ruangan ' . $booking->ruangan_id }}</span>
+                                </li>
+                                <li class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted">Waktu</span>
+                                    <span class="fw-bold">{{ \Carbon\Carbon::parse($booking->tanggal_mulai)->translatedFormat('d M Y') }} ({{ substr($booking->waktu_mulai, 0, 5) }} - {{ substr($booking->waktu_selesai, 0, 5) }})</span>
+                                </li>
+                                <li class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted">Tujuan Rapat</span>
+                                    <span class="fw-bold text-end">{{ $booking->tujuan_rapat }}</span>
+                                </li>
+                                @if($booking->paket_id && $booking->paket)
+                                <li class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted">Paket Makanan</span>
+                                    <span class="fw-bold text-end">{{ $booking->paket->nama_paket }}</span>
+                                </li>
                                 @endif
+                                <li class="list-group-item px-0 d-flex justify-content-between">
+                                    <span class="text-muted">Jumlah Peserta</span>
+                                    <span class="fw-bold">{{ $booking->jumlah_peserta }} Orang</span>
+                                </li>
+                            </ul>
+                            
+                            @if(Auth::user()->instansi === 'umum')
+                            <div class="p-3 bg-light rounded-3">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted small">Total Tagihan</span>
+                                    <span class="fw-bold text-primary-custom">Rp {{ number_format($booking->pembayaran->total_harga ?? 0, 0, ',', '.') }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted small">Status Pembayaran</span>
+                                    <span class="badge {{ $booking->pembayaran && $booking->pembayaran->status_pembayaran === 'verified' ? 'bg-success' : 'bg-warning text-dark' }}">
+                                        {{ $booking->pembayaran && $booking->pembayaran->status_pembayaran === 'verified' ? 'Lunas' : 'Menunggu Verifikasi' }}
+                                    </span>
+                                </div>
                             </div>
-                            <div class="modal-footer border-0 pt-0">
-                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-                                <button type="submit" class="btn btn-primary">Simpan & Unggah</button>
-                            </div>
-                        </form>
+                            @endif
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-light w-100" data-bs-dismiss="modal">Tutup</button>
+                        </div>
                     </div>
                 </div>
             </div>
-            @endif
 
             <!-- Cancel Booking Modal -->
             @if($booking->status === 'pending')
@@ -194,15 +222,25 @@
 @section('scripts')
 <script type="text/javascript" src="{{ config('midtrans.is_production') ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' }}" data-client-key="{{ config('midtrans.client_key') }}"></script>
 <script>
-    function payNow(token) {
+    function payNow(token, bookingId) {
         if (!token) {
             alert('Token tidak tersedia. Silakan hubungi admin.');
             return;
         }
         window.snap.pay(token, {
             onSuccess: function(result){
-                alert("Pembayaran berhasil! Silakan tunggu verifikasi admin.");
-                window.location.reload();
+                // Simulasi webhook untuk local environment
+                fetch(`/user/dashboard/payment/${bookingId}/success`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                }).then(() => {
+                    alert("Pembayaran berhasil! Sistem telah diperbarui.");
+                    window.location.reload();
+                });
             },
             onPending: function(result){
                 alert("Menunggu pembayaran Anda!");

@@ -61,6 +61,19 @@
                         <input type="hidden" name="booking_room_name" id="bookingRoomName" value="">
                     </div>
 
+                    <div class="mb-4" id="paketContainer" style="display: none;">
+                        <label class="form-label small fw-bold text-muted">PILIH PAKET (OPSIONAL)</label>
+                        <select class="form-select p-3 border-light-subtle rounded-3" name="paket_id" id="paketSelect">
+                            <option value="">-- Sewa Reguler (Per Jam) --</option>
+                            @foreach($pakets as $paket)
+                                <option value="{{ $paket->id }}" data-ruangan="{{ $paket->ruangan_id }}" style="display:none;">
+                                    {{ $paket->nama_paket }} - Rp {{ number_format($paket->harga_paket, 0, ',', '.') }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="small text-muted mt-1">Jika memilih paket, biaya akan dihitung berdasarkan harga paket tersebut.</div>
+                    </div>
+
                     <h5 class="fw-bold mb-4 mt-5 border-bottom pb-2 text-dark"><i class="fa-regular fa-calendar-check me-2 text-primary-custom"></i>2. Waktu Pelaksanaan</h5>
                     
                     <div class="row g-3 mb-4">
@@ -150,7 +163,31 @@
         
         if (roomSelect.value === "") {
             submitBtn.disabled = true;
+            document.getElementById('paketContainer').style.display = 'none';
             return;
+        } else {
+            const paketContainer = document.getElementById('paketContainer');
+            const paketSelect = document.getElementById('paketSelect');
+            const roomId = roomSelect.value;
+            const paketOptions = document.querySelectorAll('#paketSelect option[data-ruangan]');
+            
+            let hasPaket = false;
+            paketOptions.forEach(opt => {
+                if (opt.getAttribute('data-ruangan') == roomId) {
+                    opt.style.display = 'block';
+                    hasPaket = true;
+                } else {
+                    opt.style.display = 'none';
+                }
+            });
+            
+            paketSelect.value = '';
+            
+            if (hasPaket) {
+                paketContainer.style.display = 'block';
+            } else {
+                paketContainer.style.display = 'none';
+            }
         }
         
         // Update form action dynamically

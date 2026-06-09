@@ -130,6 +130,9 @@
                         <td>
                             <div class="fw-semibold text-dark">{{ \Carbon\Carbon::parse($booking->tanggal_mulai)->translatedFormat('l, d M Y') }}</div>
                             <span class="text-muted small" style="font-size: 0.8rem;"><i class="fa-regular fa-clock me-1"></i>{{ \Carbon\Carbon::parse($booking->waktu_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($booking->waktu_selesai)->format('H:i') }}</span>
+                            @if($booking->paket_id && $booking->paket)
+                                <br><span class="text-muted small" style="font-size: 0.8rem;"><i class="fa-solid fa-box-open me-1"></i>Paket: {{ $booking->paket->nama_paket }}</span>
+                            @endif
                         </td>
                         <td>
                             <p class="text-truncate mb-1 small" style="max-width: 200px;" title="{{ $booking->tujuan_rapat }}">{{ $booking->tujuan_rapat }}</p>
@@ -146,17 +149,21 @@
                         </td>
                         <td>
                             @if(isset($booking->user) && $booking->user->instansi === 'umum')
-                                @if($booking->status_pembayaran === 'unpaid')
+                                @php
+                                    $paymentStatus = $booking->pembayaran ? $booking->pembayaran->status_pembayaran : 'unpaid';
+                                    $paymentBukti = $booking->pembayaran ? $booking->pembayaran->bukti_pembayaran : null;
+                                @endphp
+                                @if($paymentStatus === 'unpaid')
                                     <span class="badge bg-danger">Belum Bayar</span>
-                                @elseif($booking->status_pembayaran === 'pending_verification')
+                                @elseif($paymentStatus === 'pending_verification')
                                     <span class="badge bg-warning text-dark">Perlu Verifikasi</span>
-                                    @if($booking->bukti_pembayaran)
-                                        <a href="{{ asset('storage/' . $booking->bukti_pembayaran) }}" target="_blank" class="btn btn-sm btn-link p-0 mt-1 d-block" style="font-size: 0.8rem;">Lihat Bukti</a>
+                                    @if($paymentBukti)
+                                        <a href="{{ asset('storage/' . $paymentBukti) }}" target="_blank" class="btn btn-sm btn-link p-0 mt-1 d-block" style="font-size: 0.8rem;">Lihat Bukti</a>
                                     @endif
-                                @elseif($booking->status_pembayaran === 'verified')
+                                @elseif($paymentStatus === 'verified')
                                     <span class="badge bg-success">Lunas</span>
-                                    @if($booking->bukti_pembayaran)
-                                        <a href="{{ asset('storage/' . $booking->bukti_pembayaran) }}" target="_blank" class="btn btn-sm btn-link p-0 mt-1 d-block" style="font-size: 0.8rem;">Lihat Bukti</a>
+                                    @if($paymentBukti)
+                                        <a href="{{ asset('storage/' . $paymentBukti) }}" target="_blank" class="btn btn-sm btn-link p-0 mt-1 d-block" style="font-size: 0.8rem;">Lihat Bukti</a>
                                     @endif
                                 @else
                                     <span class="badge bg-danger">Belum Bayar</span>
@@ -181,7 +188,8 @@
                                 @if($booking->status === 'pending')
                                     @php
                                         $canApprove = true;
-                                        if (isset($booking->user) && $booking->user->instansi === 'umum' && $booking->status_pembayaran === 'unpaid') {
+                                        $paymentStatus = $booking->pembayaran ? $booking->pembayaran->status_pembayaran : 'unpaid';
+                                        if (isset($booking->user) && $booking->user->instansi === 'umum' && $paymentStatus === 'unpaid') {
                                             $canApprove = false;
                                         }
                                     @endphp

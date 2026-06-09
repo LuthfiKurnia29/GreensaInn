@@ -68,7 +68,8 @@ Route::post('/api/payment/midtrans-callback', [\App\Http\Controllers\PaymentCall
 
 Route::get('/', function () {
     $rooms = getRooms();
-    return view('landing', compact('rooms'));
+    $pakets = \App\Models\Paket::with(['ruangan', 'fasilitas'])->get();
+    return view('landing', compact('rooms', 'pakets'));
 });
 
 Route::get('/room/{id}', function ($id) {
@@ -78,11 +79,17 @@ Route::get('/room/{id}', function ($id) {
     }
     $room = $rooms[$id];
 
-    // Ambil booking yang sudah disetujui (approved/pending) untuk hari ini
+    // Ambil booking yang sudah disetujui atau pending (asalkan sudah dibayar atau pending_verification)
     $today = \Carbon\Carbon::today()->toDateString();
     $bookedSlots = \App\Models\Peminjaman::where('ruangan_id', $id)
         ->whereIn('status', ['approved', 'pending'])
         ->where('tanggal_mulai', $today)
+        ->where(function($query) {
+            $query->whereDoesntHave('pembayaran')
+                  ->orWhereHas('pembayaran', function($q) {
+                      $q->where('status_pembayaran', '!=', 'unpaid');
+                  });
+        })
         ->get(['waktu_mulai', 'waktu_selesai'])
         ->map(fn($p) => [
             'mulai'   => substr($p->waktu_mulai, 0, 5),
@@ -90,7 +97,9 @@ Route::get('/room/{id}', function ($id) {
         ])
         ->values();
 
-    return view('detail', compact('room', 'bookedSlots'));
+    $pakets = \App\Models\Paket::where('ruangan_id', $id)->with(['ruangan', 'fasilitas'])->get();
+
+    return view('detail', compact('room', 'bookedSlots', 'pakets'));
 });
 
 // API endpoint: ambil booked slots berdasarkan ruangan_id + tanggal (AJAX)
@@ -100,6 +109,12 @@ Route::get('/api/booked-slots/{ruangan_id}', function ($ruangan_id, \Illuminate\
     $bookedSlots = \App\Models\Peminjaman::where('ruangan_id', $ruangan_id)
         ->whereIn('status', ['approved', 'pending'])
         ->where('tanggal_mulai', $date)
+        ->where(function($query) {
+            $query->whereDoesntHave('pembayaran')
+                  ->orWhereHas('pembayaran', function($q) {
+                      $q->where('status_pembayaran', '!=', 'unpaid');
+                  });
+        })
         ->get(['waktu_mulai', 'waktu_selesai'])
         ->map(fn($p) => [
             'mulai'   => substr($p->waktu_mulai, 0, 5),
@@ -208,7 +223,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/booking', function () {
         $rooms = getRooms();
         $fasilitas = \App\Models\Fasilitas::where('stok_tersedia', '>', 0)->get();
-        return view('booking', compact('rooms', 'fasilitas'));
+        $pakets = \App\Models\Paket::all();
+        return view('booking', compact('rooms', 'fasilitas', 'pakets'));
     })->name('booking.index');
     
     Route::post('/booking/{ruangan_id}', [BookingController::class, 'store'])->name('booking.store');
@@ -217,6 +233,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/user/dashboard', [\App\Http\Controllers\UserDashboardController::class, 'index'])->name('user.dashboard');
     Route::post('/user/dashboard/payment/{id}', [\App\Http\Controllers\UserDashboardController::class, 'uploadPayment'])->name('user.dashboard.payment');
     Route::delete('/user/dashboard/booking/{id}', [\App\Http\Controllers\UserDashboardController::class, 'cancelBooking'])->name('user.dashboard.booking.cancel');
+    Route::post('/user/dashboard/payment/{id}/success', [\App\Http\Controllers\UserDashboardController::class, 'paymentSuccessLocal'])->name('user.dashboard.payment.success');
 
     // Notification API Routes
     Route::get('/api/user/notifications', [NotificationController::class, 'index'])->name('notifications.index');
