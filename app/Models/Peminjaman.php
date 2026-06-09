@@ -24,4 +24,14 @@ class Peminjaman extends Model
     {
         return $this->hasMany(DetailPeminjamanFasilitas::class);
     }
+
+    public function paket()
+    {
+        return $this->belongsTo(Paket::class);
+    }
+
+    public function pembayaran()
+    {
+        return $this->hasOne(Pembayaran::class);
+    }
 }

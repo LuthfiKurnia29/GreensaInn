@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('notifications', function (Blueprint $table) {
             // Change enum to string to support more notification types
             // (approved, rejected, payment_required, payment_success, etc.)
-            $table->string('type')->change();
+            // $table->string('type')->change();
         });
     }
 

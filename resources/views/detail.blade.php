@@ -222,7 +222,7 @@
                 <div class="premium-card p-4 mb-5">
                     <h4 class="h5 mb-4">Spesifikasi Utama Ruangan</h4>
                     <div class="row g-4 text-center text-sm-start">
-                        <div class="col-6 col-sm-3">
+                        <div class="col-4 col-sm-3">
                             <div class="d-sm-flex align-items-center gap-3">
                                 <div class="spec-icon-box mb-2 mb-sm-0"><i class="fa-solid fa-users"></i></div>
                                 <div>
@@ -231,7 +231,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-6 col-sm-3">
+                        <!-- <div class="col-6 col-sm-3">
                             <div class="d-sm-flex align-items-center gap-3">
                                 <div class="spec-icon-box mb-2 mb-sm-0"><i class="fa-solid fa-arrows-left-right"></i></div>
                                 <div>
@@ -239,8 +239,8 @@
                                     <div class="fw-bold text-dark">{{ $room['size'] }}</div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-6 col-sm-3">
+                        </div> -->
+                        <div class="col-4 col-sm-3">
                             <div class="d-sm-flex align-items-center gap-3">
                                 <div class="spec-icon-box mb-2 mb-sm-0"><i class="fa-solid fa-layer-group"></i></div>
                                 <div>
@@ -249,7 +249,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-6 col-sm-3">
+                        <div class="col-4 col-sm-3">
                             <div class="d-sm-flex align-items-center gap-3">
                                 <div class="spec-icon-box mb-2 mb-sm-0"><i class="fa-solid fa-shield-halved"></i></div>
                                 <div>
@@ -332,6 +332,18 @@
                             <input type="hidden" name="waktu_mulai" id="hiddenWaktuMulai" value="">
                             <input type="hidden" name="waktu_selesai" id="hiddenWaktuSelesai" value="">
 
+                            @if(count($pakets) > 0)
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted"><i class="fa-solid fa-box-open me-2"></i>TIPE PESANAN</label>
+                                <select class="form-select p-3 border-light-subtle rounded-3" id="paketSelect" name="paket_id" onchange="updateBookingSummary()">
+                                    <option value="">Sewa Reguler (Per Jam) - Rp {{ number_format($room['price'], 0, ',', '.') }}/jam</option>
+                                    @foreach($pakets as $paket)
+                                        <option value="{{ $paket->id }}" data-price="{{ $paket->harga_paket }}">{{ $paket->nama_paket }} - Rp {{ number_format($paket->harga_paket, 0, ',', '.') }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @endif
+
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-muted"><i class="fa-regular fa-calendar me-2"></i>TANGGAL PEMINJAMAN</label>
                                 <input type="date" class="form-control p-3 border-light-subtle rounded-3" id="bookingDate" name="tanggal_mulai" value="{{ old('tanggal_mulai', date('Y-m-d')) }}" min="{{ date('Y-m-d') }}" required>
@@ -361,7 +373,7 @@
                             <div class="price-total-box mb-4" id="priceCalculatorBox" style="display: none;">
                                 <h6 class="fw-bold mb-3">Rincian Estimasi Biaya</h6>
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span class="small text-muted">Sewa Ruangan (<span id="calcHoursText">0 jam</span>)</span>
+                                    <span class="small text-muted" id="calcRoomLabel">Sewa Ruangan (<span id="calcHoursText">0 jam</span>)</span>
                                     <span class="small fw-semibold" id="calcRoomPrice">Rp 0</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-2">
@@ -600,7 +612,21 @@
             hiddenSelesai.value = `${selesaiH}:${String(m).padStart(2, '0')}:00`;
         }
 
-        const rawPrice   = hourlyPrice * slotsCount;
+        const paketSelect = document.getElementById('paketSelect');
+        const selectedPaketId = paketSelect ? paketSelect.value : '';
+        const selectedPaketOption = paketSelect && paketSelect.selectedIndex > 0 ? paketSelect.options[paketSelect.selectedIndex] : null;
+
+        let rawPrice = 0;
+        let pricingText = '';
+
+        if (selectedPaketId && selectedPaketOption) {
+            rawPrice = parseInt(selectedPaketOption.getAttribute('data-price'));
+            pricingText = 'Paket ' + selectedPaketOption.text.split(' -')[0];
+        } else {
+            rawPrice = hourlyPrice * slotsCount;
+            pricingText = `Sewa Ruangan (${slotsCount} jam)`;
+        }
+        
         const serviceTax = Math.round(rawPrice * 0.1);
         const totalPrice = rawPrice + serviceTax;
 
@@ -609,7 +635,12 @@
         const calcTax   = document.getElementById('calcServiceTax');
         const calcTotal = document.getElementById('calcTotalPrice');
 
-        if (calcHours) calcHours.innerText = `${slotsCount} jam`;
+        const calcRoomLabel = document.getElementById('calcRoomLabel');
+
+        if (calcRoomLabel) {
+            calcRoomLabel.innerHTML = pricingText;
+        }
+
         if (calcRoom)  calcRoom.innerText   = formatRupiah(rawPrice);
         if (calcTax)   calcTax.innerText    = formatRupiah(serviceTax);
         if (calcTotal) calcTotal.innerText  = formatRupiah(totalPrice);

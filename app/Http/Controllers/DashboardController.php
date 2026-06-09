@@ -11,15 +11,15 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $rooms = getMockRooms();
-        $bookings = \App\Models\Peminjaman::with(['user', 'ruangan', 'detailFasilitas.fasilitas'])->latest()->get();
+        $rooms = \App\Models\Ruangan::All();
+        $bookings = \App\Models\Peminjaman::with(['user', 'ruangan', 'detailFasilitas.fasilitas', 'pembayaran', 'paket'])->latest()->get();
 
         // Stats
         $stats = [
             'total_rooms' => count($rooms),
             'total_bookings' => \App\Models\Peminjaman::count(),
-            'rented_hours' => 124, // Dummy for now
-            'revenue' => 4580000, // Dummy for now
+            'rented_hours' => 0, // Dummy for now
+            'revenue' => 0, // Dummy for now
         ];
 
         $ruanganCount = Ruangan::count();
@@ -36,10 +36,11 @@ class DashboardController extends Controller
             'status' => 'required|in:approved,rejected'
         ]);
 
-        $peminjaman = \App\Models\Peminjaman::with(['ruangan'])->findOrFail($id);
+        $peminjaman = \App\Models\Peminjaman::with(['ruangan', 'pembayaran'])->findOrFail($id);
         $peminjaman->status = $request->status;
-        if ($request->status === 'approved' && $peminjaman->status_pembayaran === 'pending_verification') {
-            $peminjaman->status_pembayaran = 'verified';
+        if ($request->status === 'approved' && $peminjaman->pembayaran && $peminjaman->pembayaran->status_pembayaran === 'pending_verification') {
+            $peminjaman->pembayaran->status_pembayaran = 'verified';
+            $peminjaman->pembayaran->save();
         }
         $peminjaman->save();
 

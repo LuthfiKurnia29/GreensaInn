@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('peminjaman_id')->constrained('peminjaman')->cascadeOnDelete();
-            $table->enum('type', ['approved', 'rejected']);
+            $table->string('type');
             $table->string('message');
             $table->boolean('is_read')->default(false);
             $table->timestamps();

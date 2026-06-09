@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('peminjaman', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ruangan_id')->constrained('ruangans')->cascadeOnDelete();
+            $table->foreignId('ruangan_id')->constrained('ruangans')->cascadeOnDelete()->nullable();
+            $table->foreignId('paket_id')->constrained('pakets')->cascadeOnDelete()->nullable();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->date('tanggal_mulai');
             $table->time('waktu_mulai');
@@ -21,6 +22,8 @@ return new class extends Migration
             $table->integer('jumlah_peserta');
             $table->text('tujuan_rapat');
             $table->enum('status', ['pending', 'approved', 'rejected', 'completed']);
+            $table->string('bukti_pembayaran')->nullable();
+            $table->enum('status_pembayaran', ['unpaid', 'pending_verification', 'verified'])->nullable();
             $table->timestamps();
         });
     }

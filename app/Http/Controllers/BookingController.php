@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Peminjaman;
+use App\Models\Pembayaran;
+use App\Models\Ruangan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -19,6 +21,7 @@ class BookingController extends Controller
             'waktu_selesai'   => 'required|after:waktu_mulai',
             'jumlah_peserta'  => 'required|integer|min:1',
             'tujuan_rapat'    => 'required|string|max:500',
+            'paket_id'        => 'nullable|exists:pakets,id',
         ], [
             'tanggal_mulai.required'  => 'Tanggal peminjaman wajib diisi.',
             'tanggal_mulai.after_or_equal' => 'Tanggal tidak boleh lebih awal dari hari ini.',
@@ -34,66 +37,80 @@ class BookingController extends Controller
 
         // Calculate Price
         $total_harga = null;
-        $snap_token = null;
-        
+        $snap_token  = null;
+
         if ($isExternal) {
-            // Get mock room price since the real db doesn't have it for now
-            $rooms = getMockRooms();
-            $roomPricePerHour = $rooms[$ruangan_id]['price'] ?? 0;
-            
-            $start = \Carbon\Carbon::parse($request->waktu_mulai);
-            $end = \Carbon\Carbon::parse($request->waktu_selesai);
-            
-            // If end time is before start time (e.g. next day), add a day.
-            if ($end->lessThan($start)) {
-                $end->addDay();
+            // Get room price directly from the database
+            $ruangan = Ruangan::find($ruangan_id);
+            $roomPricePerHour = $ruangan ? $ruangan->harga_per_jam : 0;
+
+            if ($request->filled('paket_id')) {
+                $paket    = \App\Models\Paket::find($request->paket_id);
+                $rawPrice = $paket ? $paket->harga_paket : 0;
+            } else {
+                $start = \Carbon\Carbon::parse($request->waktu_mulai);
+                $end   = \Carbon\Carbon::parse($request->waktu_selesai);
+
+                // If end time is before start time (e.g. next day), add a day.
+                if ($end->lessThan($start)) {
+                    $end->addDay();
+                }
+
+                $durationHours = $start->diffInHours($end);
+                if ($durationHours == 0) $durationHours = 1; // Minimum 1 hour
+
+                $rawPrice = $roomPricePerHour * $durationHours;
             }
-            
-            $durationHours = $start->diffInHours($end);
-            if ($durationHours == 0) $durationHours = 1; // Minimum 1 hour
-            
-            $rawPrice = $roomPricePerHour * $durationHours;
-            $serviceTax = round($rawPrice * 0.1);
+
+            $serviceTax  = round($rawPrice * 0.1);
             $total_harga = $rawPrice + $serviceTax;
         }
 
+        // Simpan data peminjaman (tanpa field pembayaran)
         $peminjaman = Peminjaman::create([
-            'ruangan_id'        => $ruangan_id,
-            'user_id'           => Auth::id(),
-            'tanggal_mulai'     => $request->tanggal_mulai,
-            'waktu_mulai'       => $request->waktu_mulai,
-            'waktu_selesai'     => $request->waktu_selesai,
-            'status'            => 'pending',
+            'ruangan_id'     => $ruangan_id,
+            'paket_id'       => $request->paket_id,
+            'user_id'        => Auth::id(),
+            'tanggal_mulai'  => $request->tanggal_mulai,
+            'waktu_mulai'    => $request->waktu_mulai,
+            'waktu_selesai'  => $request->waktu_selesai,
+            'status'         => 'pending',
+            'jumlah_peserta' => $request->jumlah_peserta,
+            'tujuan_rapat'   => $request->tujuan_rapat,
+        ]);
+
+        // Buat record pembayaran terpisah
+        $pembayaran = Pembayaran::create([
+            'peminjaman_id'    => $peminjaman->id,
+            'total_harga'      => $total_harga,
+            'snap_token'       => null,
+            'bukti_pembayaran' => null,
             'status_pembayaran' => $isExternal ? 'unpaid' : 'verified',
-            'jumlah_peserta'    => $request->jumlah_peserta,
-            'tujuan_rapat'      => $request->tujuan_rapat,
-            'total_harga'       => $total_harga,
         ]);
 
         if ($isExternal && $total_harga > 0) {
             // Midtrans Configuration
-            \Midtrans\Config::$serverKey = config('midtrans.server_key');
-            \Midtrans\Config::$isProduction = config('midtrans.is_production');
-            \Midtrans\Config::$isSanitized = config('midtrans.is_sanitized');
-            \Midtrans\Config::$is3ds = config('midtrans.is_3ds');
+            \Midtrans\Config::$serverKey     = config('midtrans.server_key');
+            \Midtrans\Config::$isProduction  = config('midtrans.is_production');
+            \Midtrans\Config::$isSanitized   = config('midtrans.is_sanitized');
+            \Midtrans\Config::$is3ds         = config('midtrans.is_3ds');
 
             $params = [
                 'transaction_details' => [
-                    'order_id' => 'BOOK-' . $peminjaman->id . '-' . time(),
+                    'order_id'     => 'BOOK-' . $peminjaman->id . '-' . time(),
                     'gross_amount' => $total_harga,
                 ],
                 'customer_details' => [
                     'first_name' => Auth::user()->nama_lengkap,
-                    'email' => Auth::user()->email,
-                    'phone' => Auth::user()->nomor_telepon,
+                    'email'      => Auth::user()->email,
+                    'phone'      => Auth::user()->nomor_telepon,
                 ],
             ];
 
             try {
                 $snap_token = \Midtrans\Snap::getSnapToken($params);
-                $peminjaman->update(['snap_token' => $snap_token]);
+                $pembayaran->update(['snap_token' => $snap_token]);
             } catch (\Exception $e) {
-                // Log the error or handle it, for now we will proceed without token, user can retry or it stays unpaid.
                 \Illuminate\Support\Facades\Log::error('Midtrans Error: ' . $e->getMessage());
             }
 

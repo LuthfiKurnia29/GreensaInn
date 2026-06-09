@@ -90,6 +90,11 @@
                             <span class="text-muted small d-block" style="font-size: 0.78rem;">
                                 <i class="fa-regular fa-clock me-1"></i>{{ \Carbon\Carbon::parse($review->waktu_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($review->waktu_selesai)->format('H:i') }}
                             </span>
+                            @if($review->paket_id && $review->paket)
+                                <span class="text-muted small d-block" style="font-size: 0.78rem;">
+                                    <i class="fa-solid fa-box-open me-1"></i>Paket: {{ $review->paket->nama_paket }}
+                                </span>
+                            @endif
                         </td>
                         <td>
                             @if(($review->user->instansi ?? 'umum') === 'internal')
@@ -116,8 +121,7 @@
                                 }
 
                                 if (!$isInternal) {
-                                    $mockRooms = getMockRooms();
-                                    $roomPrice = $mockRooms[$review->ruangan_id]['price'] ?? 0;
+                                    $roomPrice = $review->ruangan->harga_per_jam ?? 0;
                                     $totalHarga = $roomPrice * $durasiJam;
                                     $dp = $totalHarga * 0.5;
                                 }
