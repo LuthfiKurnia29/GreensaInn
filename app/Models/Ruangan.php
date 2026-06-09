@@ -12,10 +12,17 @@ class Ruangan extends Model
         'lokasi_ruangan',
         'deskripsi',
         'status_tersedia',
+        'harga_per_jam',
+        'tipe_ruangan',
     ];
 
     public function peminjaman()
     {
         return $this->hasMany(Peminjaman::class);
+    }
+
+    public function fotoRuangan()
+    {
+        return $this->hasMany(FotoRuangan::class);
     }
 }

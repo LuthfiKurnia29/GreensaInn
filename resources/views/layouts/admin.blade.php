@@ -263,7 +263,7 @@
                 </a>
             </li>
             <li class="sidebar-item">
-                <a href="{{ url('/admin/rooms') }}" class="sidebar-link {{ Request::is('admin/rooms') ? 'active' : '' }}">
+                <a href="{{ route('admin.ruangan.index') }}" class="sidebar-link {{ Request::is('admin/ruangan*') ? 'active' : '' }}">
                     <i class="fa-solid fa-door-open"></i> Kelola Ruangan
                 </a>
             </li>

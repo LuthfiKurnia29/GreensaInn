@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FasilitasController;
+use App\Http\Controllers\RuanganController;
+use App\Http\Controllers\FotoRuanganController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
@@ -282,6 +284,17 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/fasilitas/{id}/edit', [FasilitasController::class, 'edit'])->name('admin.fasilitas.edit');
     Route::put('/admin/fasilitas/{id}', [FasilitasController::class, 'update'])->name('admin.fasilitas.update');
     Route::delete('/admin/fasilitas/{id}', [FasilitasController::class, 'destroy'])->name('admin.fasilitas.destroy');
+
+    // Masterdata Ruangan CRUD
+    Route::get('/admin/ruangan', [RuanganController::class, 'index'])->name('admin.ruangan.index');
+    Route::get('/admin/ruangan/create', [RuanganController::class, 'create'])->name('admin.ruangan.create');
+    Route::post('/admin/ruangan', [RuanganController::class, 'store'])->name('admin.ruangan.store');
+    Route::get('/admin/ruangan/{id}/edit', [RuanganController::class, 'edit'])->name('admin.ruangan.edit');
+    Route::put('/admin/ruangan/{id}', [RuanganController::class, 'update'])->name('admin.ruangan.update');
+    Route::delete('/admin/ruangan/{id}', [RuanganController::class, 'destroy'])->name('admin.ruangan.destroy');
+
+    // Hapus foto ruangan individual
+    Route::delete('/admin/foto-ruangan/{id}', [FotoRuanganController::class, 'destroy'])->name('admin.foto-ruangan.destroy');
 });
 
 // Auth Routes
