@@ -11,15 +11,15 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $rooms = getMockRooms();
+        $rooms = \App\Models\Ruangan::All();
         $bookings = \App\Models\Peminjaman::with(['user', 'ruangan', 'detailFasilitas.fasilitas'])->latest()->get();
 
         // Stats
         $stats = [
             'total_rooms' => count($rooms),
             'total_bookings' => \App\Models\Peminjaman::count(),
-            'rented_hours' => 124, // Dummy for now
-            'revenue' => 4580000, // Dummy for now
+            'rented_hours' => 0, // Dummy for now
+            'revenue' => 0, // Dummy for now
         ];
 
         $ruanganCount = Ruangan::count();

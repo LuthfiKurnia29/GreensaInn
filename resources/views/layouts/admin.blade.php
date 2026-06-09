@@ -268,6 +268,11 @@
                 </a>
             </li>
             <li class="sidebar-item">
+                <a href="{{ route('admin.paket.index') }}" class="sidebar-link {{ Request::is('admin/paket*') ? 'active' : '' }}">
+                    <i class="fa-solid fa-box-open"></i> Kelola Paket
+                </a>
+            </li>
+            <li class="sidebar-item">
                 <a href="{{ route('admin.fasilitas.index') }}" class="sidebar-link {{ Request::is('admin/fasilitas*') ? 'active' : '' }}">
                     <i class="fa-solid fa-couch"></i> Masterdata Fasilitas
                 </a>
