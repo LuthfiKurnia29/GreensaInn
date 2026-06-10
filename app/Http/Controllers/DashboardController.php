@@ -12,7 +12,7 @@ class DashboardController extends Controller
     public function index()
     {
         $rooms = \App\Models\Ruangan::All();
-        $bookings = \App\Models\Peminjaman::with(['user', 'ruangan', 'detailFasilitas.fasilitas', 'pembayaran', 'paket'])->latest()->get();
+        $bookings = \App\Models\Peminjaman::with(['user', 'ruangan', 'detailFasilitas.fasilitas', 'pembayaran', 'paket', 'dokumenPendukung'])->latest()->get();
 
         // Stats
         $stats = [

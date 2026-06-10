@@ -326,7 +326,7 @@
                             </div>
                         @endif
 
-                        <form id="bookingForm" method="POST" action="{{ route('booking.store', $room['id']) }}">
+                        <form id="bookingForm" method="POST" action="{{ route('booking.store', $room['id']) }}" enctype="multipart/form-data">
                             @csrf
                             <input type="hidden" name="booking_room_name" value="{{ $room['name'] }}">
                             <input type="hidden" name="waktu_mulai" id="hiddenWaktuMulai" value="">
@@ -368,6 +368,14 @@
                                 <label class="form-label small fw-bold text-muted"><i class="fa-solid fa-list-check me-2"></i>TUJUAN RAPAT</label>
                                 <textarea class="form-control border-light-subtle rounded-3" id="meetingPurpose" name="tujuan_rapat" rows="3" placeholder="Contoh: Rapat Koordinasi Kuartal 1" required maxlength="500">{{ old('tujuan_rapat') }}</textarea>
                             </div>
+
+                            @if(Auth::check() && Auth::user()->instansi !== 'umum')
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-muted"><i class="fa-solid fa-file-arrow-up me-2"></i>DOKUMEN PENDUKUNG (SURAT TUGAS/PERMOHONAN)</label>
+                                <input type="file" class="form-control border-light-subtle rounded-3 p-2" name="dokumen_pendukung" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg" required>
+                                <div class="text-muted mt-1" style="font-size:0.8rem;">Wajib diunggah untuk keperluan validasi. Maks. 5MB (PDF/DOC/IMG).</div>
+                            </div>
+                            @endif
 
                             {{-- Price Breakdown --}}
                             <div class="price-total-box mb-4" id="priceCalculatorBox" style="display: none;">
@@ -664,5 +672,22 @@
         modal.show();
     });
     @endif
+
+    // Auto-select paket from URL parameter
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const paketId = urlParams.get('paket');
+        if (paketId) {
+            const paketSelect = document.getElementById('paketSelect');
+            if (paketSelect) {
+                paketSelect.value = paketId;
+                updateBookingSummary();
+                // Scroll gently to the booking form
+                setTimeout(() => {
+                    paketSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 500);
+            }
+        }
+    });
 </script>
 @endsection

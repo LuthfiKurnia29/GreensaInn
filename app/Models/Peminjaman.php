@@ -34,4 +34,9 @@ class Peminjaman extends Model
     {
         return $this->hasOne(Pembayaran::class);
     }
+
+    public function dokumenPendukung()
+    {
+        return $this->hasOne(DokumenPendukung::class);
+    }
 }

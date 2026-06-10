@@ -171,8 +171,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     });
 
     Route::get('/admin/reviews', function () {
-        $reviews = \App\Models\Peminjaman::with(['user', 'ruangan'])
-            ->whereIn('status', ['approved', 'rejected', 'completed'])
+        $reviews = \App\Models\Peminjaman::with(['user', 'ruangan', 'dokumenPendukung', 'pembayaran'])
+            ->whereIn('status', ['pending', 'approved', 'rejected', 'completed'])
             ->latest()
             ->get();
         return view('admin.booking-reviews', compact('reviews'));

@@ -22,6 +22,7 @@ class BookingController extends Controller
             'jumlah_peserta'  => 'required|integer|min:1',
             'tujuan_rapat'    => 'required|string|max:500',
             'paket_id'        => 'nullable|exists:pakets,id',
+            'dokumen_pendukung' => \Illuminate\Support\Facades\Auth::user()->instansi === 'internal' ? 'required|file|mimes:pdf,doc,docx,jpg,png,jpeg|max:5120' : 'nullable|file|mimes:pdf,doc,docx,jpg,png,jpeg|max:5120',
         ], [
             'tanggal_mulai.required'  => 'Tanggal peminjaman wajib diisi.',
             'tanggal_mulai.after_or_equal' => 'Tanggal tidak boleh lebih awal dari hari ini.',
@@ -31,6 +32,10 @@ class BookingController extends Controller
             'jumlah_peserta.required' => 'Jumlah peserta wajib diisi.',
             'jumlah_peserta.min'      => 'Jumlah peserta minimal 1 orang.',
             'tujuan_rapat.required'   => 'Tujuan rapat wajib diisi.',
+            'dokumen_pendukung.required' => 'Dokumen pendukung wajib diunggah untuk peminjam internal.',
+            'dokumen_pendukung.file'  => 'Dokumen pendukung harus berupa file.',
+            'dokumen_pendukung.mimes' => 'Format dokumen harus pdf, doc, docx, jpg, png, atau jpeg.',
+            'dokumen_pendukung.max'   => 'Ukuran maksimal dokumen adalah 5MB.',
         ]);
 
         $isExternal = Auth::user()->instansi === 'umum';
@@ -87,6 +92,17 @@ class BookingController extends Controller
             'bukti_pembayaran' => null,
             'status_pembayaran' => $isExternal ? 'unpaid' : 'verified',
         ]);
+
+        if (!$isExternal && $request->hasFile('dokumen_pendukung')) {
+            $file = $request->file('dokumen_pendukung');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('dokumen_pendukung', $filename, 'public');
+
+            \App\Models\DokumenPendukung::create([
+                'peminjaman_id' => $peminjaman->id,
+                'file_dokumen' => $filename,
+            ]);
+        }
 
         if ($isExternal && $total_harga > 0) {
             // Midtrans Configuration
