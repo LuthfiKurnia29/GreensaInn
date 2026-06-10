@@ -463,7 +463,7 @@
                         </ul>
                         @endif
 
-                        <a href="{{ route('booking.index') }}?paket={{ $paket->id }}" class="btn btn-outline-primary w-100 mt-auto">
+                        <a href="{{ url('/room/'.$paket->ruangan_id) }}?paket={{ $paket->id }}" class="btn btn-outline-primary w-100 mt-auto">
                             <i class="fa-regular fa-calendar-check me-2"></i>Pesan Paket Ini
                         </a>
                     </div>

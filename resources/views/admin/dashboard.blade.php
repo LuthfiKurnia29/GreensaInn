@@ -111,7 +111,7 @@
                         <th>Ruangan</th>
                         <th>Tanggal & Jam</th>
                         <th>Agenda/Keperluan</th>
-                        <th>Pembayaran</th>
+                        <th>Rincian Biaya & Berkas</th>
                         <th>Status</th>
                         <th class="text-center" style="width: 180px;">Aksi</th>
                     </tr>
@@ -148,6 +148,10 @@
                             @endif
                         </td>
                         <td>
+                            @php
+                                $totalHarga = $booking->pembayaran ? $booking->pembayaran->total_harga : 0;
+                            @endphp
+                            <div class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">Rp {{ number_format($totalHarga, 0, ',', '.') }}</div>
                             @if(isset($booking->user) && $booking->user->instansi === 'umum')
                                 @php
                                     $paymentStatus = $booking->pembayaran ? $booking->pembayaran->status_pembayaran : 'unpaid';
@@ -158,18 +162,25 @@
                                 @elseif($paymentStatus === 'pending_verification')
                                     <span class="badge bg-warning text-dark">Perlu Verifikasi</span>
                                     @if($paymentBukti)
-                                        <a href="{{ asset('storage/' . $paymentBukti) }}" target="_blank" class="btn btn-sm btn-link p-0 mt-1 d-block" style="font-size: 0.8rem;">Lihat Bukti</a>
+                                        <a href="{{ asset('storage/' . $paymentBukti) }}" target="_blank" class="btn btn-sm btn-link p-0 mt-1 d-block text-start" style="font-size: 0.8rem;">Lihat Bukti</a>
                                     @endif
                                 @elseif($paymentStatus === 'verified')
                                     <span class="badge bg-success">Lunas</span>
                                     @if($paymentBukti)
-                                        <a href="{{ asset('storage/' . $paymentBukti) }}" target="_blank" class="btn btn-sm btn-link p-0 mt-1 d-block" style="font-size: 0.8rem;">Lihat Bukti</a>
+                                        <a href="{{ asset('storage/' . $paymentBukti) }}" target="_blank" class="btn btn-sm btn-link p-0 mt-1 d-block text-start" style="font-size: 0.8rem;">Lihat Bukti</a>
                                     @endif
                                 @else
                                     <span class="badge bg-danger">Belum Bayar</span>
                                 @endif
                             @else
-                                <span class="badge bg-secondary">Internal</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle mb-1" style="font-size: 0.75rem;">Internal UINSA</span>
+                                @if($booking->dokumenPendukung)
+                                    <a href="{{ asset('storage/dokumen_pendukung/' . $booking->dokumenPendukung->file_dokumen) }}" target="_blank" class="d-block text-info mt-1" style="font-size: 0.8rem; text-decoration: none;">
+                                        <i class="fa-solid fa-file-pdf"></i> Lihat Dokumen
+                                    </a>
+                                @else
+                                    <span class="d-block small text-warning mt-1" style="font-size: 0.75rem;"><i class="fa-solid fa-triangle-exclamation"></i> Tanpa Dokumen</span>
+                                @endif
                             @endif
                         </td>
                         <td>

@@ -121,18 +121,17 @@
                                 }
 
                                 if (!$isInternal) {
-                                    $roomPrice = $review->ruangan->harga_per_jam ?? 0;
-                                    $totalHarga = $roomPrice * $durasiJam;
+                                    $totalHarga = $review->pembayaran ? $review->pembayaran->total_harga : 0;
                                     $dp = $totalHarga * 0.5;
                                 }
                             @endphp
                             <div class="finance-badge-box">
                                 @if($isInternal)
                                     <div class="text-success fw-bold"><i class="fa-solid fa-tags me-1"></i>Bebas Biaya (Rp 0)</div>
-                                    <div class="text-muted small mt-0.5">Wajib DP: Rp 0</div>
+                                    <!-- <div class="text-muted small mt-0.5">Wajib DP: Rp 0</div> -->
                                 @else
                                     <div class="text-dark fw-bold">Total: Rp {{ number_format($totalHarga, 0, ',', '.') }}</div>
-                                    <div class="text-danger small fw-semibold mt-0.5"><i class="fa-solid fa-circle-exclamation me-1"></i>Min. DP: Rp {{ number_format($dp, 0, ',', '.') }}</div>
+                                    <!-- <div class="text-danger small fw-semibold mt-0.5"><i class="fa-solid fa-circle-exclamation me-1"></i>Min. DP: Rp {{ number_format($dp, 0, ',', '.') }}</div> -->
                                 @endif
                             </div>
                         </td>
@@ -149,7 +148,33 @@
                         </td>
                         <td>
                             <div class="d-flex justify-content-center gap-2" id="action-box-{{ $review->id }}">
-                                <span class="text-muted small"><i class="fa-solid fa-circle-info me-1"></i>Telah Diproses</span>
+                                @if($review->status === 'pending')
+                                    @if($isInternal)
+                                        @if($review->dokumenPendukung)
+                                            <a href="{{ asset('storage/dokumen_pendukung/' . $review->dokumenPendukung->file_dokumen) }}" target="_blank" class="btn btn-sm btn-info text-white px-2.5 py-1.5" title="Lihat Dokumen">
+                                                <i class="fa-solid fa-file-pdf"></i> Dokumen
+                                            </a>
+                                        @else
+                                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-triangle-exclamation"></i> Menunggu Dokumen</span>
+                                        @endif
+                                        <button class="btn btn-success btn-sm px-2.5 py-1.5" onclick="approveInternal('{{ $review->id }}')">
+                                            <i class="fa-solid fa-check"></i> Setujui
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm px-2.5 py-1.5" onclick="rejectBooking('{{ $review->id }}')">
+                                            <i class="fa-solid fa-ban"></i> Tolak
+                                        </button>
+                                    @else
+                                        <!-- External Users Actions -->
+                                        <button class="btn btn-primary btn-sm px-2.5 py-1.5" onclick="openVerificationModal({id:'{{ $review->id }}', booker:'{{ $review->user->nama_lengkap ?? 'Unknown' }}', room:'{{ $review->ruangan->nama_ruangan ?? 'Unknown' }}', price:{{ $totalHarga }}, proof_img:'{{ $review->pembayaran && $review->pembayaran->bukti_pembayaran ? asset('storage/'.$review->pembayaran->bukti_pembayaran) : 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?q=80&w=600' }}'})">
+                                            <i class="fa-solid fa-file-invoice-dollar me-1"></i> Verifikasi DP
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm px-2.5 py-1.5" onclick="rejectBooking('{{ $review->id }}')">
+                                            <i class="fa-solid fa-ban"></i>
+                                        </button>
+                                    @endif
+                                @else
+                                    <span class="text-muted small"><i class="fa-solid fa-circle-info me-1"></i>Telah Diproses</span>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -341,31 +366,57 @@
 
     // Approve internal booking (Rp 0 cost UINSA)
     function approveInternal(id) {
-        // Update badge
-        const badge = document.getElementById('badge-' + id);
-        badge.className = 'badge-status success';
-        badge.innerText = 'Disetujui (Internal)';
+        fetch(`/admin/peminjaman/${id}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ status: 'approved' })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                // Update badge
+                const badge = document.getElementById('badge-' + id);
+                badge.className = 'badge-status success';
+                badge.innerText = 'Disetujui (Internal)';
 
-        // Update actions
-        const actionBox = document.getElementById('action-box-' + id);
-        actionBox.innerHTML = '<span class="text-muted small"><i class="fa-solid fa-circle-check text-success me-1"></i>Disetujui (Gratis)</span>';
+                // Update actions
+                const actionBox = document.getElementById('action-box-' + id);
+                actionBox.innerHTML = '<span class="text-muted small"><i class="fa-solid fa-circle-check text-success me-1"></i>Disetujui (Gratis)</span>';
 
-        showToast(`Reservasi ${id} (Internal UINSA) telah disetujui tanpa biaya sewa.`, 'success');
+                showToast(`Reservasi ${id} (Internal UINSA) telah disetujui tanpa biaya sewa.`, 'success');
+            }
+        });
     }
 
     // Reject booking
     function rejectBooking(id) {
         if (confirm(`Apakah Anda yakin ingin menolak permohonan booking ${id}?`)) {
-            // Update badge
-            const badge = document.getElementById('badge-' + id);
-            badge.className = 'badge-status danger';
-            badge.innerText = 'Ditolak';
+            fetch(`/admin/peminjaman/${id}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ status: 'rejected' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    // Update badge
+                    const badge = document.getElementById('badge-' + id);
+                    badge.className = 'badge-status danger';
+                    badge.innerText = 'Ditolak';
 
-            // Update actions
-            const actionBox = document.getElementById('action-box-' + id);
-            actionBox.innerHTML = '<span class="text-muted small text-danger"><i class="fa-solid fa-ban me-1"></i>Reservasi Ditolak</span>';
+                    // Update actions
+                    const actionBox = document.getElementById('action-box-' + id);
+                    actionBox.innerHTML = '<span class="text-muted small text-danger"><i class="fa-solid fa-ban me-1"></i>Reservasi Ditolak</span>';
 
-            showToast(`Reservasi ${id} telah ditolak.`, 'danger');
+                    showToast(`Reservasi ${id} telah ditolak.`, 'danger');
+                }
+            });
         }
     }
 
@@ -412,17 +463,30 @@
     // Confirm DP payment
     function confirmPayment() {
         if (activeReviewId) {
-            // Update badge
-            const badge = document.getElementById('badge-' + activeReviewId);
-            badge.className = 'badge-status success';
-            badge.innerText = 'DP Lunas & Disetujui';
+            fetch(`/admin/peminjaman/${activeReviewId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ status: 'approved' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    // Update badge
+                    const badge = document.getElementById('badge-' + activeReviewId);
+                    badge.className = 'badge-status success';
+                    badge.innerText = 'DP Lunas & Disetujui';
 
-            // Update actions
-            const actionBox = document.getElementById('action-box-' + activeReviewId);
-            actionBox.innerHTML = '<span class="text-muted small text-success"><i class="fa-solid fa-circle-check me-1"></i>DP Lunas & Disetujui</span>';
+                    // Update actions
+                    const actionBox = document.getElementById('action-box-' + activeReviewId);
+                    actionBox.innerHTML = '<span class="text-muted small text-success"><i class="fa-solid fa-circle-check me-1"></i>DP Lunas & Disetujui</span>';
 
-            verificationModal.hide();
-            showToast(`Uang Muka (DP) untuk ${activeReviewId} terkonfirmasi Lunas. Reservasi disetujui.`, 'success');
+                    verificationModal.hide();
+                    showToast(`Uang Muka (DP) untuk ${activeReviewId} terkonfirmasi Lunas. Reservasi disetujui.`, 'success');
+                }
+            });
         }
     }
 
